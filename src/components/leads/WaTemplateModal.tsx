@@ -19,19 +19,19 @@ interface WaTemplateModalProps {
 
 export function WaTemplateModal({ open, onClose, lead, templates, employeeId }: WaTemplateModalProps) {
   const [selected, setSelected] = useState<WaTemplate | null>(null)
+  const [customText, setCustomText] = useState('')
   const [sending, setSending] = useState(false)
 
   function renderTemplate(body: string): string {
     return body.replace('{{name}}', lead.name)
   }
 
-  async function handleSend() {
-    if (!selected) return
-    setSending(true)
-    const body = renderTemplate(selected.body)
-    const url = buildWAUrl(lead.phone, body)
+  const messageBody = selected ? renderTemplate(selected.body) : customText
 
-    // Open immediately before any await to preserve the user gesture on mobile
+  async function handleSend() {
+    setSending(true)
+    const url = buildWAUrl(lead.phone, messageBody)
+
     const a = document.createElement('a')
     a.href = url
     a.target = '_blank'
@@ -40,14 +40,15 @@ export function WaTemplateModal({ open, onClose, lead, templates, employeeId }: 
     a.click()
     document.body.removeChild(a)
 
-    // Log activity after opening (non-blocking)
     const supabase = createClient()
     supabase.from('activities').insert({
       org_id: lead.org_id,
       lead_id: lead.id,
       employee_id: employeeId,
       activity_type: 'whatsapp_sent',
-      note: `WhatsApp sent via template: ${selected.name}`,
+      note: selected
+        ? `WhatsApp sent via template: ${selected.name}`
+        : 'WhatsApp opened (no template)',
     }).then()
 
     toast.success('WhatsApp opened! Activity logged.')
@@ -56,22 +57,34 @@ export function WaTemplateModal({ open, onClose, lead, templates, employeeId }: 
   }
 
   async function handleCopy() {
-    if (!selected) return
-    const body = renderTemplate(selected.body)
-    await navigator.clipboard.writeText(body)
+    if (!messageBody) return
+    await navigator.clipboard.writeText(messageBody)
     toast.success('Copied to clipboard')
+  }
+
+  function handleSelectTemplate(t: WaTemplate) {
+    if (selected?.id === t.id) {
+      setSelected(null)
+    } else {
+      setSelected(t)
+      setCustomText('')
+    }
   }
 
   return (
     <Modal open={open} onClose={onClose} title="Send WhatsApp Message" size="lg">
       <div className="p-5 space-y-4">
-        <div>
-          <p className="text-sm text-slate-600 mb-3">Select a template to send to <strong>{lead.name}</strong> ({lead.phone})</p>
+        <p className="text-sm text-slate-600">
+          Sending to <strong>{lead.name}</strong> ({lead.phone})
+        </p>
+
+        {templates.filter(t => t.is_active).length > 0 && (
           <div className="space-y-2">
+            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Templates (optional)</p>
             {templates.filter(t => t.is_active).map(t => (
               <button
                 key={t.id}
-                onClick={() => setSelected(t)}
+                onClick={() => handleSelectTemplate(t)}
                 className={`w-full text-left p-3 rounded-lg border transition-colors ${selected?.id === t.id ? 'border-indigo-400 bg-indigo-50' : 'border-slate-200 hover:border-slate-300'}`}
               >
                 <div className="flex items-center gap-2 mb-1">
@@ -82,21 +95,27 @@ export function WaTemplateModal({ open, onClose, lead, templates, employeeId }: 
               </button>
             ))}
           </div>
-        </div>
-
-        {selected && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-            <p className="text-xs text-green-700 font-medium mb-1">Preview:</p>
-            <p className="text-sm text-green-900">{renderTemplate(selected.body)}</p>
-          </div>
         )}
 
-        <div className="flex gap-2 pt-2">
-          <Button variant="outline" size="sm" onClick={handleCopy} disabled={!selected}>
+        <div className="space-y-1">
+          <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+            {selected ? 'Preview' : 'Custom message (optional)'}
+          </p>
+          <textarea
+            value={messageBody}
+            onChange={e => { setSelected(null); setCustomText(e.target.value) }}
+            rows={4}
+            placeholder="Type a custom message, or select a template above…"
+            className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+          />
+        </div>
+
+        <div className="flex gap-2 pt-1">
+          <Button variant="outline" size="sm" onClick={handleCopy} disabled={!messageBody}>
             <Copy size={14} />
-            Copy Text
+            Copy
           </Button>
-          <Button size="sm" onClick={handleSend} loading={sending} disabled={!selected} className="flex-1">
+          <Button size="sm" onClick={handleSend} loading={sending} className="flex-1">
             <ExternalLink size={14} />
             Open WhatsApp
           </Button>
