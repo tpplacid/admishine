@@ -157,7 +157,7 @@ export function AdminAttendanceClient({ admin, records: initialRecords, orgId, r
 
       <Modal open={!!noteModal} onClose={() => setNoteModal(null)} title="Add Admin Note">
         <div className="p-5 space-y-4">
-          <textarea value={adminNote} onChange={e => setAdminNote(e.target.value)} rows={3} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Admin note…" />
+          <textarea value={adminNote} onChange={e => setAdminNote(e.target.value)} rows={3} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="Admin note…" />
           <Button className="w-full" loading={loading} onClick={() => noteModal && updateStatus(noteModal, noteModal.status, adminNote)}>Save Note</Button>
         </div>
       </Modal>

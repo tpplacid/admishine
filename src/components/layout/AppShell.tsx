@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import { Employee } from '@/types'
 import { createClient } from '@/lib/supabase/client'
@@ -65,11 +66,8 @@ export function AppShell({ employee, children }: { employee: Employee; children:
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className="flex items-center gap-3 px-5 py-5 border-b border-slate-100">
-        <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
-          <span className="text-white text-sm font-bold">A</span>
-        </div>
-        <span className="font-bold text-slate-900 text-lg">AdmiShine</span>
+      <div className="flex items-center justify-center px-5 py-4 border-b border-slate-100">
+        <Image src="/logo.jpg" alt="AdmiShine" width={160} height={72} className="object-contain" priority />
       </div>
 
       {/* Nav */}
@@ -82,7 +80,7 @@ export function AppShell({ employee, children }: { employee: Employee; children:
             className={cn(
               'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
               pathname === item.href || pathname.startsWith(item.href + '/')
-                ? 'bg-indigo-50 text-indigo-700'
+                ? 'bg-teal-50 text-teal-700'
                 : 'text-slate-600 hover:bg-slate-100'
             )}
           >
@@ -104,7 +102,7 @@ export function AppShell({ employee, children }: { employee: Employee; children:
                 className={cn(
                   'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
                   pathname === item.href || pathname.startsWith(item.href + '/')
-                    ? 'bg-indigo-50 text-indigo-700'
+                    ? 'bg-teal-50 text-teal-700'
                     : 'text-slate-600 hover:bg-slate-100'
                 )}
               >
@@ -119,8 +117,8 @@ export function AppShell({ employee, children }: { employee: Employee; children:
       {/* User */}
       <div className="border-t border-slate-100 p-3">
         <div className="flex items-center gap-3 px-2 py-2">
-          <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
-            <span className="text-indigo-700 text-xs font-bold">{getInitials(employee.name)}</span>
+          <div className="w-8 h-8 bg-teal-100 rounded-full flex items-center justify-center flex-shrink-0">
+            <span className="text-teal-700 text-xs font-bold">{getInitials(employee.name)}</span>
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-slate-900 truncate">{employee.name}</p>
@@ -160,9 +158,9 @@ export function AppShell({ employee, children }: { employee: Employee; children:
           <button onClick={() => setSidebarOpen(true)} className="text-slate-600">
             <Menu size={22} />
           </button>
-          <span className="font-bold text-slate-900">AdmiShine</span>
-          <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
-            <span className="text-indigo-700 text-xs font-bold">{getInitials(employee.name)}</span>
+          <Image src="/logo.jpg" alt="AdmiShine" width={120} height={40} className="object-contain h-8 w-auto" />
+          <div className="w-8 h-8 bg-teal-100 rounded-full flex items-center justify-center">
+            <span className="text-teal-700 text-xs font-bold">{getInitials(employee.name)}</span>
           </div>
         </header>
 

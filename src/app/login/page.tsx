@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
 
@@ -26,14 +27,10 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-blue-100 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-teal-50 to-cyan-100 px-4">
       <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl p-8">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 bg-indigo-600 rounded-2xl mb-4">
-            <span className="text-white text-2xl font-bold">A</span>
-          </div>
-          <h1 className="text-2xl font-bold text-slate-900">AdmiShine CRM</h1>
-          <p className="text-sm text-slate-500 mt-1">Admissions Consultancy Platform</p>
+        <div className="flex justify-center mb-8">
+          <Image src="/logo.jpg" alt="AdmiShine" width={200} height={90} className="object-contain" priority />
         </div>
 
         <form onSubmit={handleLogin} className="space-y-5">
@@ -44,7 +41,7 @@ export default function LoginPage() {
               required
               value={email}
               onChange={e => setEmail(e.target.value)}
-              className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
               placeholder="you@admishine.com"
             />
           </div>
@@ -55,14 +52,14 @@ export default function LoginPage() {
               required
               value={password}
               onChange={e => setPassword(e.target.value)}
-              className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
               placeholder="••••••••"
             />
           </div>
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Signing in…' : 'Sign In'}
           </button>

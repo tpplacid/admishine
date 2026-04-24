@@ -8,7 +8,7 @@ export function LeadCard({ lead }: { lead: Lead }) {
   const overdue = isOverdue(lead.sla_deadline)
   return (
     <Link href={`/leads/${lead.id}`}>
-      <div className={`bg-white rounded-xl border p-4 hover:border-indigo-300 hover:shadow-sm transition-all ${overdue ? 'border-red-200 bg-red-50' : 'border-slate-200'}`}>
+      <div className={`bg-white rounded-xl border p-4 hover:border-teal-300 hover:shadow-sm transition-all ${overdue ? 'border-red-200 bg-red-50' : 'border-slate-200'}`}>
         <div className="flex items-start justify-between gap-2 mb-2">
           <div>
             <h3 className="text-sm font-semibold text-slate-900">{lead.name}</h3>
@@ -39,7 +39,7 @@ export function LeadCard({ lead }: { lead: Lead }) {
         )}
 
         {lead.next_followup_at && (
-          <div className="flex items-center gap-1 mt-1 text-xs text-indigo-600">
+          <div className="flex items-center gap-1 mt-1 text-xs text-teal-600">
             <Clock size={11} />
             <span>Follow-up: {formatDateTime(lead.next_followup_at)}</span>
           </div>

@@ -134,7 +134,7 @@ export function AttendanceClient({ employee, records: initialRecords, requireKey
                 value={wifiCode}
                 onChange={e => setWifiCode(e.target.value)}
                 placeholder="e.g. ADMISHINE_OFFICE"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
               />
             </div>
           )}
@@ -205,7 +205,7 @@ export function AttendanceClient({ employee, records: initialRecords, requireKey
               value={overrideReason}
               onChange={e => setOverrideReason(e.target.value)}
               rows={3}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
               placeholder="Explain why you can't verify WiFi…"
             />
           </div>

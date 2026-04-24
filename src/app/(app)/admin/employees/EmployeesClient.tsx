@@ -118,7 +118,7 @@ export function EmployeesClient({ admin, employees: initialEmployees }: Props) {
                 <tr key={e.id} className="hover:bg-slate-50">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center text-xs font-bold text-indigo-600">{getInitials(e.name)}</div>
+                      <div className="w-8 h-8 bg-teal-100 rounded-full flex items-center justify-center text-xs font-bold text-teal-600">{getInitials(e.name)}</div>
                       <div>
                         <p className="font-medium text-slate-900">{e.name}</p>
                         <p className="text-xs text-slate-500">{e.email}</p>
@@ -128,7 +128,7 @@ export function EmployeesClient({ admin, employees: initialEmployees }: Props) {
                   <td className="px-4 py-3 text-slate-600">{ROLE_LABELS[e.role]}</td>
                   <td className="px-4 py-3 text-slate-600">{manager?.name || '—'}</td>
                   <td className="px-4 py-3">
-                    <span className="font-semibold text-indigo-600">{e.score}</span>
+                    <span className="font-semibold text-teal-600">{e.score}</span>
                     <span className="text-slate-400">/10</span>
                   </td>
                   <td className="px-4 py-3">
@@ -138,7 +138,7 @@ export function EmployeesClient({ admin, employees: initialEmployees }: Props) {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex gap-2">
-                      <button onClick={() => openEdit(e)} className="text-slate-500 hover:text-indigo-600" title="Edit"><Edit size={15} /></button>
+                      <button onClick={() => openEdit(e)} className="text-slate-500 hover:text-teal-600" title="Edit"><Edit size={15} /></button>
                       <button onClick={() => openReset(e)} className="text-slate-500 hover:text-orange-600" title="Reset password"><KeyRound size={15} /></button>
                       <button onClick={() => toggleActive(e)} className="text-slate-500 hover:text-red-600" title={e.is_active ? 'Deactivate' : 'Activate'}>
                         {e.is_active ? <UserX size={15} /> : <UserCheck size={15} />}

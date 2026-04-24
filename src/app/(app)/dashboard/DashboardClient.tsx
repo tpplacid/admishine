@@ -78,20 +78,20 @@ export function DashboardClient({ employee, leads, stats }: Props) {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search by name or phone…"
-            className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
           />
         </div>
         <select
           value={stageFilter}
           onChange={e => setStageFilter(e.target.value)}
-          className="px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
         >
           {STAGES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
         </select>
         <select
           value={sourceFilter}
           onChange={e => setSourceFilter(e.target.value)}
-          className="px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
         >
           <option value="">All Sources</option>
           <option value="meta">Meta</option>
