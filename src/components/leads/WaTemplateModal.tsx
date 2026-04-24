@@ -31,17 +31,25 @@ export function WaTemplateModal({ open, onClose, lead, templates, employeeId }: 
     const body = renderTemplate(selected.body)
     const url = buildWAUrl(lead.phone, body)
 
-    // Log activity
+    // Open immediately before any await to preserve the user gesture on mobile
+    const a = document.createElement('a')
+    a.href = url
+    a.target = '_blank'
+    a.rel = 'noopener noreferrer'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+
+    // Log activity after opening (non-blocking)
     const supabase = createClient()
-    await supabase.from('activities').insert({
+    supabase.from('activities').insert({
       org_id: lead.org_id,
       lead_id: lead.id,
       employee_id: employeeId,
       activity_type: 'whatsapp_sent',
       note: `WhatsApp sent via template: ${selected.name}`,
-    })
+    }).then()
 
-    window.open(url, '_blank')
     toast.success('WhatsApp opened! Activity logged.')
     setSending(false)
     onClose()
