@@ -103,17 +103,17 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ ok: true })
 }
 
-// ── Weighted allocation ──────────────────────────────────────
+// ── Weighted allocation: TL → Counsellor → Telesales, score-weighted within each tier ──
 async function allocateLead(supabase: ReturnType<typeof createAdminClient>, orgId: string, date: Date) {
   const dayOfWeek = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'][date.getDay()]
   const dateStr = date.toISOString().slice(0, 10)
 
-  // Get all active employees (telesales + counsellors) not on leave and no weekoff today
+  // All active employees across all assignable roles
   const { data: employees } = await supabase
     .from('employees')
-    .select('id, score, reports_to')
+    .select('id, role, score, reports_to')
     .eq('org_id', orgId)
-    .in('role', ['telesales', 'counsellor'])
+    .in('role', ['tl', 'counsellor', 'telesales'])
     .eq('is_active', true)
     .eq('is_on_leave', false)
 
@@ -130,12 +130,17 @@ async function allocateLead(supabase: ReturnType<typeof createAdminClient>, orgI
   const available = employees.filter(e => !weekoffIds.has(e.id))
   if (available.length === 0) return null
 
-  // Weighted random selection by score
-  const totalWeight = available.reduce((sum, e) => sum + e.score, 0)
-  let rand = Math.random() * totalWeight
-  for (const emp of available) {
-    rand -= emp.score
-    if (rand <= 0) return emp
+  // Try each role tier in priority order
+  for (const role of ['tl', 'counsellor', 'telesales'] as const) {
+    const tier = available.filter(e => e.role === role)
+    if (tier.length === 0) continue
+    const totalWeight = tier.reduce((sum, e) => sum + (e.score || 1), 0)
+    let rand = Math.random() * totalWeight
+    for (const emp of tier) {
+      rand -= (emp.score || 1)
+      if (rand <= 0) return emp
+    }
+    return tier[0]
   }
-  return available[0]
+  return null
 }

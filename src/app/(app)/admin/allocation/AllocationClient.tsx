@@ -87,11 +87,11 @@ export function AllocationClient({ admin, employees: initialEmployees, weekoffs:
             Add Weekoff
           </Button>
         </div>
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden overflow-x-auto">
           {weekoffs.length === 0 ? (
             <p className="p-5 text-sm text-slate-400 text-center">No weekoffs configured</p>
           ) : (
-            <table className="w-full text-sm">
+            <table className="w-full text-sm min-w-[480px]">
               <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
                   <th className="px-4 py-3 text-left font-medium text-slate-600">Employee</th>

@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { Employee, Attendance } from '@/types'
-import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Modal } from '@/components/ui/Modal'
@@ -25,70 +24,58 @@ export function AttendanceClient({ employee, records: initialRecords, requireKey
   const [wifiCode, setWifiCode] = useState('')
 
   const today = format(new Date(), 'yyyy-MM-dd')
-  const todayRecords = records.filter(r => r.work_date === today)
-  const lastRecord = todayRecords[todayRecords.length - 1]
-  const isClockedIn = lastRecord?.clock_in && !lastRecord?.clock_out
+
+  // Newest-first so lastRecord is always the most recent session
+  const todayRecords = records
+    .filter(r => r.work_date === today)
+    .sort((a, b) => new Date(b.clock_in || b.created_at).getTime() - new Date(a.clock_in || a.created_at).getTime())
+
+  const lastRecord = todayRecords[0]
+  const isClockedIn = !!(lastRecord?.clock_in && !lastRecord?.clock_out)
 
   async function handleClockAction(isManualOverride = false) {
     setLoading(true)
-    const supabase = createClient()
-    const now = new Date().toISOString()
+    try {
+      const body = isClockedIn
+        ? { action: 'clock_out', recordId: lastRecord.id }
+        : isManualOverride
+          ? { action: 'override', overrideReason, requireKey }
+          : { action: 'clock_in', wifiCode, requireKey }
 
-    const wifiVerified = !requireKey
-      ? true
-      : employee.wifi_ssid
-        ? wifiCode.trim().toLowerCase() === employee.wifi_ssid.toLowerCase()
-        : false
-
-    const finalStatus = !requireKey
-      ? 'present'
-      : isManualOverride
-        ? 'questioned'
-        : wifiVerified
-          ? 'present'
-          : 'questioned'
-
-    if (!isClockedIn) {
-      const { data, error } = await supabase.from('attendance').insert({
-        org_id: employee.org_id,
-        employee_id: employee.id,
-        work_date: today,
-        clock_in: now,
-        wifi_verified: wifiVerified,
-        manual_override: isManualOverride,
-        override_reason: isManualOverride ? overrideReason : null,
-        status: finalStatus,
-      }).select().single()
-
-      if (error) toast.error(error.message)
-      else {
-        setRecords(prev => [data, ...prev])
-        toast.success(
-          !requireKey
-            ? 'Clocked in'
-            : wifiVerified
-              ? 'Clocked in (WiFi verified)'
-              : 'Clocked in (WiFi not verified)'
-        )
+      const res = await fetch('/api/attendance/clock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        toast.error(json.error || 'Failed')
+      } else {
+        const { record, wifiVerified } = json
+        // Upsert: replace existing row if same id, otherwise prepend
+        setRecords(prev => {
+          const without = prev.filter(r => r.id !== record.id)
+          return [record, ...without]
+        })
+        if (isClockedIn) {
+          toast.success('Clocked out')
+        } else {
+          toast.success(
+            !requireKey
+              ? 'Clocked in'
+              : wifiVerified
+                ? 'Clocked in (WiFi verified)'
+                : 'Clocked in (WiFi not verified)'
+          )
+        }
+        setOverrideOpen(false)
+        setWifiCode('')
+        setOverrideReason('')
       }
-    } else {
-      const { data, error } = await supabase
-        .from('attendance')
-        .update({ clock_out: now })
-        .eq('id', lastRecord.id)
-        .select().single()
-
-      if (error) toast.error(error.message)
-      else {
-        setRecords(prev => prev.map(r => r.id === data.id ? data : r))
-        toast.success('Clocked out')
-      }
+    } catch {
+      toast.error('Network error')
     }
-
     setLoading(false)
-    setOverrideOpen(false)
-    setWifiCode('')
-    setOverrideReason('')
   }
 
   const statusColors: Record<string, string> = {
@@ -160,13 +147,13 @@ export function AttendanceClient({ employee, records: initialRecords, requireKey
               <p className="text-xs font-medium text-slate-500">Today&apos;s sessions</p>
               {todayRecords.map(r => (
                 <div key={r.id} className="flex items-center justify-between text-xs text-slate-600">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     {r.wifi_verified ? <Wifi size={12} className="text-green-500" /> : <WifiOff size={12} className="text-red-400" />}
                     <span>{r.clock_in ? formatDateTime(r.clock_in) : '—'}</span>
                     <span className="text-slate-400">→</span>
                     <span>{r.clock_out ? formatDateTime(r.clock_out) : 'Active'}</span>
                   </div>
-                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${statusColors[r.status] || ''}`}>
+                  <span className={`px-2 py-0.5 rounded text-xs font-medium flex-shrink-0 ${statusColors[r.status] || ''}`}>
                     {r.status}
                   </span>
                 </div>
@@ -180,15 +167,15 @@ export function AttendanceClient({ employee, records: initialRecords, requireKey
         <CardHeader><CardTitle>Attendance History (Last 30 days)</CardTitle></CardHeader>
         <div className="divide-y divide-slate-100">
           {records.filter(r => r.work_date !== today).slice(0, 25).map(r => (
-            <div key={r.id} className="px-5 py-3 flex items-center justify-between">
-              <div>
+            <div key={r.id} className="px-5 py-3 flex items-center justify-between gap-3">
+              <div className="min-w-0">
                 <p className="text-sm font-medium text-slate-800">{formatDate(r.work_date)}</p>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-slate-500 truncate">
                   {r.clock_in ? formatDateTime(r.clock_in) : '—'} → {r.clock_out ? formatDateTime(r.clock_out) : '—'}
                 </p>
-                {r.override_reason && <p className="text-xs text-orange-600 mt-0.5">Override: {r.override_reason}</p>}
+                {r.override_reason && <p className="text-xs text-orange-600 mt-0.5 truncate">Override: {r.override_reason}</p>}
               </div>
-              <span className={`px-2 py-1 rounded-lg text-xs font-medium ${statusColors[r.status] || 'bg-slate-50 text-slate-600'}`}>
+              <span className={`px-2 py-1 rounded-lg text-xs font-medium flex-shrink-0 ${statusColors[r.status] || 'bg-slate-50 text-slate-600'}`}>
                 {r.status}
               </span>
             </div>
