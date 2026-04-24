@@ -7,13 +7,14 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 import { Input, Select, Textarea } from '@/components/ui/Input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
+import { Modal } from '@/components/ui/Modal'
 import { StageBadge } from '@/components/leads/StageBadge'
 import { WaTemplateModal } from '@/components/leads/WaTemplateModal'
 import { formatDateTime, timeAgo, isOverdue } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import {
-  Phone, MessageSquare, Clock, User, ArrowLeft,
-  AlertTriangle, ChevronDown, Calendar, Save
+  Phone, MessageSquare, Clock, ArrowLeft,
+  AlertTriangle, Save, ArrowRightLeft
 } from 'lucide-react'
 
 interface Props {
@@ -21,16 +22,20 @@ interface Props {
   activities: Activity[]
   templates: WaTemplate[]
   employee: Employee
+  orgEmployees: Employee[]
 }
 
 const ALL_STAGES: LeadStage[] = ['0','A','B','C','D','E','F','G','X','Y']
 
-export function LeadDetailClient({ lead: initialLead, activities: initialActivities, templates, employee }: Props) {
+export function LeadDetailClient({ lead: initialLead, activities: initialActivities, templates, employee, orgEmployees }: Props) {
   const router = useRouter()
   const [lead, setLead] = useState(initialLead)
   const [activities, setActivities] = useState(initialActivities)
   const [saving, setSaving] = useState(false)
   const [waOpen, setWaOpen] = useState(false)
+  const [transferOpen, setTransferOpen] = useState(false)
+  const [transferTarget, setTransferTarget] = useState('')
+  const [transferring, setTransferring] = useState(false)
   const [comment, setComment] = useState('')
   const [addingComment, setAddingComment] = useState(false)
 
@@ -118,6 +123,27 @@ export function LeadDetailClient({ lead: initialLead, activities: initialActivit
     setSaving(false)
   }
 
+  async function handleTransfer() {
+    if (!transferTarget) return
+    setTransferring(true)
+    const emp = orgEmployees.find(e => e.id === transferTarget)
+    const { error } = await supabase
+      .from('leads')
+      .update({ owner_id: transferTarget, reporting_manager_id: emp?.reports_to || null })
+      .eq('id', lead.id)
+    if (error) toast.error(error.message)
+    else {
+      await supabase.from('activities').insert({
+        org_id: lead.org_id, lead_id: lead.id, employee_id: employee.id,
+        activity_type: 'field_update', note: `Lead transferred to ${emp?.name}`,
+      })
+      toast.success(`Lead transferred to ${emp?.name}`)
+      router.refresh()
+      setTransferOpen(false)
+    }
+    setTransferring(false)
+  }
+
   async function handleAddComment() {
     if (!comment.trim()) return
     setAddingComment(true)
@@ -156,10 +182,18 @@ export function LeadDetailClient({ lead: initialLead, activities: initialActivit
             )}
           </div>
         </div>
-        <Button size="sm" variant="outline" onClick={() => setWaOpen(true)}>
-          <MessageSquare size={14} />
-          WhatsApp
-        </Button>
+        <div className="flex gap-2">
+          {(employee.role === 'tl' || employee.role === 'ad') && (
+            <Button size="sm" variant="outline" onClick={() => setTransferOpen(true)}>
+              <ArrowRightLeft size={14} />
+              Transfer
+            </Button>
+          )}
+          <Button size="sm" variant="outline" onClick={() => setWaOpen(true)}>
+            <MessageSquare size={14} />
+            WhatsApp
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -360,6 +394,28 @@ export function LeadDetailClient({ lead: initialLead, activities: initialActivit
         templates={templates}
         employeeId={employee.id}
       />
+
+      {/* Transfer Modal */}
+      <Modal open={transferOpen} onClose={() => setTransferOpen(false)} title="Transfer Lead">
+        <div className="p-5 space-y-4">
+          <p className="text-sm text-slate-600">Transfer <strong>{lead.name}</strong> to another team member or AD.</p>
+          <select
+            value={transferTarget}
+            onChange={e => setTransferTarget(e.target.value)}
+            className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+          >
+            <option value="">Select employee…</option>
+            {orgEmployees
+              .filter(e => e.id !== lead.owner_id)
+              .map(e => <option key={e.id} value={e.id}>{e.name} ({e.role.toUpperCase()})</option>)
+            }
+          </select>
+          <div className="flex gap-2">
+            <Button variant="outline" className="flex-1" onClick={() => setTransferOpen(false)}>Cancel</Button>
+            <Button className="flex-1" loading={transferring} disabled={!transferTarget} onClick={handleTransfer}>Transfer</Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }

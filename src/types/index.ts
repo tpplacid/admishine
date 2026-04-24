@@ -232,6 +232,10 @@ export const STAGE_A_TO_B_REQUIRED = [
 export const ROLE_LABELS: Record<EmployeeRole, string> = {
   telesales: 'Telesales',
   counsellor: 'Counsellor',
-  tl: 'Team Lead',
-  ad: 'AD / Admin',
+  tl: 'TL',
+  ad: 'AD',
+}
+
+export function formatRole(role: EmployeeRole): string {
+  return ROLE_LABELS[role]
 }

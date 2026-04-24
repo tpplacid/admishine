@@ -20,17 +20,23 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
 
   if (!lead) notFound()
 
-  const { data: activities } = await supabase
-    .from('activities')
-    .select('*, employee:employees(id,name,role)')
-    .eq('lead_id', id)
-    .order('created_at', { ascending: false })
-
-  const { data: templates } = await supabase
-    .from('wa_templates')
-    .select('*')
-    .eq('org_id', lead.org_id)
-    .eq('is_active', true)
+  const [{ data: activities }, { data: templates }, { data: orgEmployees }] = await Promise.all([
+    supabase
+      .from('activities')
+      .select('*, employee:employees(id,name,role)')
+      .eq('lead_id', id)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('wa_templates')
+      .select('*')
+      .eq('org_id', lead.org_id)
+      .eq('is_active', true),
+    supabase
+      .from('employees')
+      .select('id, name, role, reports_to, org_id, email, score, is_active, is_on_leave, wifi_ssid, created_at')
+      .eq('org_id', lead.org_id)
+      .eq('is_active', true),
+  ])
 
   return (
     <LeadDetailClient
@@ -38,6 +44,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
       activities={activities || []}
       templates={templates || []}
       employee={employee}
+      orgEmployees={orgEmployees || []}
     />
   )
 }

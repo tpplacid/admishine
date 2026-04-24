@@ -69,7 +69,7 @@ export function AdminLeavesClient({ admin, leaves: initialLeaves }: Props) {
                 <tr key={l.id} className={l.status === 'pending' ? 'bg-yellow-50' : 'hover:bg-slate-50'}>
                   <td className="px-4 py-3">
                     <p className="font-medium text-sm text-slate-900">{emp?.name}</p>
-                    <p className="text-xs text-slate-500 capitalize">{emp?.role}</p>
+                    <p className="text-xs text-slate-500">{emp?.role ? (emp.role === "tl" ? "TL" : emp.role === "ad" ? "AD" : emp.role.charAt(0).toUpperCase() + emp.role.slice(1)) : ""}</p>
                   </td>
                   <td className="px-4 py-3 text-sm text-slate-600">{formatDate(l.leave_date)}</td>
                   <td className="px-4 py-3 text-sm capitalize text-slate-600">{l.leave_type}</td>

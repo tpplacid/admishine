@@ -9,7 +9,7 @@ import { Modal } from '@/components/ui/Modal'
 import { StageBadge } from '@/components/leads/StageBadge'
 import { formatDateTime } from '@/lib/utils'
 import toast from 'react-hot-toast'
-import { Search, ArrowRightLeft, CheckSquare } from 'lucide-react'
+import { Search, ArrowRightLeft, Download } from 'lucide-react'
 import Link from 'next/link'
 
 interface Props { admin: Employee; leads: Lead[]; employees: Employee[] }
@@ -66,11 +66,29 @@ export function AdminLeadsClient({ admin, leads: initialLeads, employees }: Prop
     setTransferring(false)
   }
 
+  function exportCSV() {
+    const header = ['Name', 'Phone', 'Stage', 'Owner', 'Source', 'Location', 'Lead Type', 'Preferred Course', 'Updated At']
+    const rows = filtered.map(l => [
+      l.name, l.phone, l.main_stage,
+      (l.owner as Employee)?.name || '',
+      l.source, l.location || '', l.lead_type || '', l.preferred_course || '', l.updated_at,
+    ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
+    const csv = [header.join(','), ...rows].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a'); a.href = url; a.download = 'leads_export.csv'
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url)
+  }
+
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-xl font-bold text-slate-900">All Leads</h1>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          <Button size="sm" variant="outline" onClick={exportCSV}>
+            <Download size={14} />
+            Export CSV ({filtered.length})
+          </Button>
           {selected.length > 0 && (
             <Button size="sm" onClick={() => setTransferModal(true)}>
               <ArrowRightLeft size={14} />

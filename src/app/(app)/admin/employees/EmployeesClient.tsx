@@ -99,7 +99,8 @@ export function EmployeesClient({ admin, employees: initialEmployees }: Props) {
         </Button>
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+      {/* Desktop table */}
+      <div className="hidden md:block bg-white rounded-xl border border-slate-200 overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-slate-50 border-b border-slate-200">
             <tr>
@@ -150,6 +151,54 @@ export function EmployeesClient({ admin, employees: initialEmployees }: Props) {
             })}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile cards */}
+      <div className="md:hidden space-y-3">
+        {employees.map(e => {
+          const manager = employees.find(m => m.id === e.reports_to)
+          return (
+            <div key={e.id} className="bg-white rounded-xl border border-slate-200 p-4 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center text-sm font-bold text-teal-600">{getInitials(e.name)}</div>
+                  <div>
+                    <p className="font-semibold text-slate-900">{e.name}</p>
+                    <p className="text-xs text-slate-500">{e.email}</p>
+                  </div>
+                </div>
+                <span className={`text-xs font-medium px-2 py-1 rounded-lg flex-shrink-0 ${e.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
+                  {e.is_active ? 'Active' : 'Inactive'}
+                </span>
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-xs">
+                <div className="bg-slate-50 rounded-lg p-2">
+                  <p className="text-slate-400 mb-0.5">Role</p>
+                  <p className="font-medium text-slate-700">{ROLE_LABELS[e.role]}</p>
+                </div>
+                <div className="bg-slate-50 rounded-lg p-2">
+                  <p className="text-slate-400 mb-0.5">Reports To</p>
+                  <p className="font-medium text-slate-700 truncate">{manager?.name || '—'}</p>
+                </div>
+                <div className="bg-slate-50 rounded-lg p-2">
+                  <p className="text-slate-400 mb-0.5">Score</p>
+                  <p className="font-semibold text-teal-600">{e.score}<span className="text-slate-400 font-normal">/10</span></p>
+                </div>
+              </div>
+              <div className="flex gap-3 pt-1 border-t border-slate-100">
+                <button onClick={() => openEdit(e)} className="flex items-center gap-1.5 text-xs text-slate-600 hover:text-teal-600 font-medium">
+                  <Edit size={13} />Edit
+                </button>
+                <button onClick={() => openReset(e)} className="flex items-center gap-1.5 text-xs text-slate-600 hover:text-orange-500 font-medium">
+                  <KeyRound size={13} />Reset PW
+                </button>
+                <button onClick={() => toggleActive(e)} className="flex items-center gap-1.5 text-xs text-slate-600 hover:text-red-500 font-medium">
+                  {e.is_active ? <><UserX size={13} />Deactivate</> : <><UserCheck size={13} />Activate</>}
+                </button>
+              </div>
+            </div>
+          )
+        })}
       </div>
 
       {/* New/Edit Modal */}

@@ -2,45 +2,57 @@ import Link from 'next/link'
 import { Lead } from '@/types'
 import { StageBadge } from './StageBadge'
 import { formatDateTime, isOverdue } from '@/lib/utils'
-import { Phone, Clock, AlertTriangle } from 'lucide-react'
+import { Phone, Clock, AlertTriangle, Sparkles } from 'lucide-react'
 
-export function LeadCard({ lead }: { lead: Lead }) {
+function isNew(createdAt: string) {
+  return Date.now() - new Date(createdAt).getTime() < 24 * 60 * 60 * 1000
+}
+
+export function LeadCard({ lead, highlight = false }: { lead: Lead; highlight?: boolean }) {
   const overdue = isOverdue(lead.sla_deadline)
+  const fresh = isNew(lead.created_at)
+
   return (
-    <Link href={`/leads/${lead.id}`}>
-      <div className={`bg-white rounded-xl border p-4 hover:border-teal-300 hover:shadow-sm transition-all ${overdue ? 'border-red-200 bg-red-50' : 'border-slate-200'}`}>
+    <Link href={`/leads/${lead.id}`} className="block">
+      <div className={`relative bg-white rounded-2xl border p-4 card-glow
+        ${overdue ? 'border-red-200 bg-red-50/50' : highlight ? 'border-emerald-300 bg-emerald-50/30' : 'border-slate-200'}`}>
+
+        {fresh && (
+          <div className="badge-new absolute -top-2 -right-2 flex items-center gap-0.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow-lg shadow-emerald-500/30 z-10 select-none">
+            <Sparkles size={8} />
+            NEW
+          </div>
+        )}
+
         <div className="flex items-start justify-between gap-2 mb-2">
-          <div>
-            <h3 className="text-sm font-semibold text-slate-900">{lead.name}</h3>
+          <div className="min-w-0">
+            <h3 className="text-sm font-semibold text-slate-900 truncate">{lead.name}</h3>
             <div className="flex items-center gap-1 text-xs text-slate-500 mt-0.5">
-              <Phone size={11} />
+              <Phone size={10} />
               <span>{lead.phone}</span>
             </div>
           </div>
           <StageBadge stage={lead.main_stage} />
         </div>
 
-        {lead.sub_stage && (
-          <p className="text-xs text-slate-500 mb-2">{lead.sub_stage}</p>
-        )}
+        {lead.sub_stage && <p className="text-xs text-slate-400 mb-2 truncate">{lead.sub_stage}</p>}
 
-        <div className="flex flex-wrap items-center gap-2 text-xs">
-          <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded capitalize">{lead.source}</span>
+        <div className="flex flex-wrap items-center gap-1.5 text-xs">
+          <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full capitalize">{lead.source}</span>
           {lead.preferred_course && (
-            <span className="bg-blue-50 text-blue-600 px-2 py-0.5 rounded">{lead.preferred_course}</span>
+            <span className="bg-teal-50 text-teal-700 px-2 py-0.5 rounded-full truncate max-w-[120px]">{lead.preferred_course}</span>
           )}
         </div>
 
         {lead.sla_deadline && (
-          <div className={`flex items-center gap-1 mt-2 text-xs ${overdue ? 'text-red-600' : 'text-slate-500'}`}>
-            {overdue ? <AlertTriangle size={11} /> : <Clock size={11} />}
+          <div className={`flex items-center gap-1 mt-2.5 text-xs ${overdue ? 'text-red-500 font-medium' : 'text-slate-400'}`}>
+            {overdue ? <AlertTriangle size={10} /> : <Clock size={10} />}
             <span>SLA: {formatDateTime(lead.sla_deadline)}</span>
           </div>
         )}
-
         {lead.next_followup_at && (
           <div className="flex items-center gap-1 mt-1 text-xs text-teal-600">
-            <Clock size={11} />
+            <Clock size={10} />
             <span>Follow-up: {formatDateTime(lead.next_followup_at)}</span>
           </div>
         )}

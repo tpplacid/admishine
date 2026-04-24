@@ -77,7 +77,7 @@ export function AdminAttendanceClient({ admin, records: initialRecords, orgId, r
       <tr className={r.status === 'questioned' ? 'bg-orange-50' : 'hover:bg-slate-50'}>
         <td className="px-4 py-3">
           <p className="font-medium text-slate-800 text-sm">{emp?.name || '—'}</p>
-          <p className="text-xs text-slate-500 capitalize">{emp?.role}</p>
+          <p className="text-xs text-slate-500">{emp?.role ? (emp.role === "tl" ? "TL" : emp.role === "ad" ? "AD" : emp.role.charAt(0).toUpperCase() + emp.role.slice(1)) : ""}</p>
         </td>
         <td className="px-4 py-3 text-sm text-slate-600">{formatDate(r.work_date)}</td>
         <td className="px-4 py-3 text-sm text-slate-600">
