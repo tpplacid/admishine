@@ -1,10 +1,10 @@
 import { requireRole } from '@/lib/auth'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { OfflineApprovalsClient } from './OfflineApprovalsClient'
 
 export default async function OfflineApprovalsPage() {
   const employee = await requireRole(['ad'])
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   const { data: approvals } = await supabase
     .from('offline_lead_approvals')

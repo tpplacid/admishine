@@ -1,10 +1,10 @@
 import { requireRole } from '@/lib/auth'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { AdminLeavesClient } from './AdminLeavesClient'
 
 export default async function AdminLeavesPage() {
   const employee = await requireRole(['ad'])
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   const { data: leaves } = await supabase
     .from('leaves')

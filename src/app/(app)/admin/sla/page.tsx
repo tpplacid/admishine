@@ -1,10 +1,10 @@
 import { requireRole } from '@/lib/auth'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { AdminSlaClient } from './AdminSlaClient'
 
 export default async function AdminSlaPage() {
   const employee = await requireRole(['ad'])
-  const supabase = await createClient()
+  const supabase = createAdminClient()
 
   const { data: breaches } = await supabase
     .from('sla_breaches')

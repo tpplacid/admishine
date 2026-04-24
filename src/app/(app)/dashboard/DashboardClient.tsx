@@ -17,11 +17,13 @@ const STAGES = [
 interface Props {
   employee: Employee
   leads: Lead[]
+  approvalMap: Record<string, string>
   stats: { total: number; hot: number; followup: number; closed: number }
 }
 
-export function DashboardClient({ employee, leads: initialLeads, stats }: Props) {
+export function DashboardClient({ employee, leads: initialLeads, approvalMap: initialApprovalMap, stats }: Props) {
   const [leads, setLeads] = useState(initialLeads)
+  const [approvalMap, setApprovalMap] = useState<Record<string, string>>(initialApprovalMap)
   const [newLeadIds, setNewLeadIds] = useState<Set<string>>(new Set())
   const [search, setSearch] = useState('')
   const [stageFilter, setStageFilter] = useState('')
@@ -30,7 +32,9 @@ export function DashboardClient({ employee, leads: initialLeads, stats }: Props)
 
   useEffect(() => {
     const supabase = createClient()
-    const channel = supabase
+
+    // New leads assigned to me
+    const leadsChannel = supabase
       .channel('dashboard-leads')
       .on('postgres_changes', {
         event: 'INSERT', schema: 'public', table: 'leads',
@@ -40,13 +44,39 @@ export function DashboardClient({ employee, leads: initialLeads, stats }: Props)
         setNewLeadIds(prev => new Set([...prev, (p.new as Lead).id]))
       })
       .subscribe()
-    return () => { supabase.removeChannel(channel) }
+
+    // Offline approval status changes
+    const approvalChannel = supabase
+      .channel('dashboard-approvals')
+      .on('postgres_changes', {
+        event: 'UPDATE', schema: 'public', table: 'offline_lead_approvals',
+        filter: `submitted_by=eq.${employee.id}`,
+      }, (p) => {
+        const { lead_id, status } = p.new as { lead_id: string; status: string }
+        setApprovalMap(prev => ({ ...prev, [lead_id]: status }))
+        if (status === 'approved') {
+          setNewLeadIds(prev => new Set([...prev, lead_id]))
+        }
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(leadsChannel)
+      supabase.removeChannel(approvalChannel)
+    }
   }, [employee.id])
 
   const newCount = newLeadIds.size
 
   const filtered = useMemo(() => {
     let l = leads
+    // Remove rejected offline/referral leads
+    l = l.filter(lead => {
+      if (lead.source === 'meta') return true
+      if (lead.approved) return true
+      if (approvalMap[lead.id] === 'rejected') return false
+      return true
+    })
     if (search) { const q = search.toLowerCase(); l = l.filter(x => x.name.toLowerCase().includes(q) || x.phone.includes(q)) }
     if (stageFilter) l = l.filter(x => x.main_stage === stageFilter as Lead['main_stage'])
     if (sourceFilter) l = l.filter(x => x.source === sourceFilter)
@@ -55,7 +85,13 @@ export function DashboardClient({ employee, leads: initialLeads, stats }: Props)
       const bNew = newLeadIds.has(b.id) ? 0 : 1
       return aNew - bNew || new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     })
-  }, [leads, search, stageFilter, sourceFilter, newLeadIds])
+  }, [leads, search, stageFilter, sourceFilter, newLeadIds, approvalMap])
+
+  function isPendingOffline(lead: Lead) {
+    if (lead.source === 'meta') return false
+    if (lead.approved) return false
+    return !approvalMap[lead.id] || approvalMap[lead.id] === 'pending'
+  }
 
   const canCreateLead = ['ad', 'tl', 'counsellor', 'telesales'].includes(employee.role)
 
@@ -90,7 +126,7 @@ export function DashboardClient({ employee, leads: initialLeads, stats }: Props)
             { label: 'Total',      value: stats.total,    color: 'text-slate-800',   bg: 'bg-white',      accent: '#94a3b8' },
             { label: 'Hot Leads',  value: stats.hot,      color: 'text-orange-600',  bg: 'bg-orange-50',  accent: '#f97316' },
             { label: 'Follow Up',  value: stats.followup, color: 'text-amber-600',   bg: 'bg-amber-50',   accent: '#f59e0b' },
-            { label: 'Closed Won', value: stats.closed,   color: 'text-indigo-600', bg: 'bg-indigo-50', accent: '#4f46e5' },
+            { label: 'Closed Won', value: stats.closed,   color: 'text-indigo-600',  bg: 'bg-indigo-50',  accent: '#4f46e5' },
           ].map(s => (
             <div key={s.label} className={`${s.bg} rounded-2xl border border-slate-200 p-4 shadow-sm`}>
               <p className="text-xs text-slate-500 font-medium">{s.label}</p>
@@ -129,7 +165,12 @@ export function DashboardClient({ employee, leads: initialLeads, stats }: Props)
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {filtered.map(lead => (
-              <LeadCard key={lead.id} lead={lead} highlight={newLeadIds.has(lead.id)} />
+              <LeadCard
+                key={lead.id}
+                lead={lead}
+                highlight={newLeadIds.has(lead.id)}
+                pendingApproval={isPendingOffline(lead)}
+              />
             ))}
           </div>
         )}

@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f0f5f2;
+  --background: #f8fafc;
   --foreground: #0f172a;
 }
 
@@ -31,8 +31,8 @@ h1, h2, .font-serif {
 }
 
 @keyframes newPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(16,185,129,0.55); }
-  50%       { box-shadow: 0 0 0 6px rgba(16,185,129,0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(99,102,241,0.55); }
+  50%       { box-shadow: 0 0 0 6px rgba(99,102,241,0); }
 }
 
 @keyframes shimmer {

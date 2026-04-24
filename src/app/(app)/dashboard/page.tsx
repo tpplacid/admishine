@@ -20,15 +20,29 @@ export default async function DashboardPage() {
     query = query.eq('owner_id', employee.id)
   }
 
-  const { data: leads } = await query.limit(200)
+  const [{ data: leads }, { data: approvals }] = await Promise.all([
+    query.limit(200),
+    supabase
+      .from('offline_lead_approvals')
+      .select('lead_id, status')
+      .eq('submitted_by', employee.id),
+  ])
 
-  // Stats
+  // Map lead_id → approval status for offline/referral leads
+  const approvalMap: Record<string, string> = {}
+  for (const a of approvals || []) approvalMap[a.lead_id] = a.status
+
+  // Stats: exclude rejected offline leads
+  const visibleLeads = (leads || []).filter(l =>
+    l.source === 'meta' || l.approved || approvalMap[l.id] !== 'rejected'
+  )
+
   const stats = {
-    total: leads?.length || 0,
-    hot: leads?.filter(l => l.main_stage === 'C').length || 0,
-    followup: leads?.filter(l => l.main_stage === 'B').length || 0,
-    closed: leads?.filter(l => l.main_stage === 'F').length || 0,
+    total: visibleLeads.length,
+    hot: visibleLeads.filter(l => l.main_stage === 'C').length,
+    followup: visibleLeads.filter(l => l.main_stage === 'B').length,
+    closed: visibleLeads.filter(l => l.main_stage === 'F').length,
   }
 
-  return <DashboardClient employee={employee} leads={leads || []} stats={stats} />
+  return <DashboardClient employee={employee} leads={leads || []} approvalMap={approvalMap} stats={stats} />
 }
