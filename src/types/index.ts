@@ -173,16 +173,16 @@ export const STAGE_LABELS: Record<LeadStage, string> = {
 }
 
 export const STAGE_COLORS: Record<LeadStage, string> = {
-  '0': 'bg-gray-100 text-gray-700',
-  'A': 'bg-blue-100 text-blue-700',
-  'B': 'bg-yellow-100 text-yellow-700',
-  'C': 'bg-orange-100 text-orange-700',
-  'D': 'bg-purple-100 text-purple-700',
-  'E': 'bg-red-100 text-red-700',
-  'F': 'bg-green-100 text-green-700',
-  'G': 'bg-teal-100 text-teal-700',
-  'X': 'bg-gray-200 text-gray-600',
-  'Y': 'bg-pink-100 text-pink-700',
+  '0': 'bg-gray-50 text-gray-500',
+  'A': 'bg-blue-50 text-blue-600',
+  'B': 'bg-yellow-50 text-yellow-600',
+  'C': 'bg-orange-50 text-orange-600',
+  'D': 'bg-purple-50 text-purple-600',
+  'E': 'bg-red-50 text-red-600',
+  'F': 'bg-green-50 text-green-600',
+  'G': 'bg-teal-50 text-teal-600',
+  'X': 'bg-gray-100 text-gray-500',
+  'Y': 'bg-pink-50 text-pink-600',
 }
 
 export const SUB_STAGES: Record<string, string[]> = {

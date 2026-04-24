@@ -90,7 +90,7 @@ export function AppShell({ employee, children, notifCount = 0 }: Props) {
   }
 
   const SidebarContent = () => (
-    <div className="flex flex-col h-full" style={{ background: '#0d2d1e' }}>
+    <div className="flex flex-col h-full" style={{ background: '#1a5c38' }}>
       {/* Logo — white card on dark bg */}
       <div className="px-4 py-4 border-b border-white/8">
         <div className="bg-white rounded-xl px-3 py-2 flex items-center justify-center">
