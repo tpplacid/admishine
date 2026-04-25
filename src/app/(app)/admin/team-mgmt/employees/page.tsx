@@ -2,6 +2,8 @@ import { requireRole } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
 import { EmployeesClient } from '../../employees/EmployeesClient'
 
+export const revalidate = 120
+
 export default async function TeamEmployeesPage() {
   const employee = await requireRole(['ad'])
   const supabase = await createClient()

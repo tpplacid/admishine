@@ -1,14 +1,11 @@
+import { cache } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { Employee } from '@/types'
 import { redirect } from 'next/navigation'
 
-export async function getSession() {
-  const supabase = await createClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  return session
-}
-
-export async function getEmployee(): Promise<Employee | null> {
+// cache() deduplicates this across all server components within a single request —
+// no matter how many layouts/pages call getEmployee(), Supabase is queried only once.
+export const getEmployee = cache(async (): Promise<Employee | null> => {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
@@ -20,7 +17,7 @@ export async function getEmployee(): Promise<Employee | null> {
     .single()
 
   return data
-}
+})
 
 export async function requireAuth() {
   const employee = await getEmployee()

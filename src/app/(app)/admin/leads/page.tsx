@@ -1,25 +1,34 @@
 import { requireRole } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
 import { AdminLeadsClient } from './AdminLeadsClient'
-import { Employee } from '@/types'
+import { Employee, Lead } from '@/types'
+import { unstable_cache } from 'next/cache'
+
+const getAdminLeadsData = unstable_cache(
+  async (orgId: string) => {
+    const supabase = await createClient()
+    const [{ data: leads }, { data: employees }] = await Promise.all([
+      supabase
+        .from('leads')
+        .select('id, name, phone, source, main_stage, owner_id, updated_at, created_at, application_fees, booking_fees, tuition_fees, owner:employees!leads_owner_id_fkey(id,name,role)')
+        .eq('org_id', orgId)
+        .order('updated_at', { ascending: false })
+        .limit(300),
+      supabase
+        .from('employees')
+        .select('id, name, role')
+        .eq('org_id', orgId)
+        .eq('is_active', true),
+    ])
+    return { leads, employees }
+  },
+  ['admin-leads'],
+  { revalidate: 60 }
+)
 
 export default async function AdminLeadsPage() {
   const employee = await requireRole(['ad'])
-  const supabase = await createClient()
+  const { leads, employees } = await getAdminLeadsData(employee.org_id)
 
-  const [{ data: leads }, { data: employees }] = await Promise.all([
-    supabase
-      .from('leads')
-      .select('*, owner:employees!leads_owner_id_fkey(id,name,role)')
-      .eq('org_id', employee.org_id)
-      .order('updated_at', { ascending: false })
-      .limit(200),
-    supabase
-      .from('employees')
-      .select('id, name, role, email, org_id, reports_to, is_active')
-      .eq('org_id', employee.org_id)
-      .eq('is_active', true),
-  ])
-
-  return <AdminLeadsClient admin={employee} leads={leads || []} employees={(employees || []) as unknown as Employee[]} />
+  return <AdminLeadsClient admin={employee} leads={(leads || []) as unknown as Lead[]} employees={(employees || []) as unknown as Employee[]} />
 }

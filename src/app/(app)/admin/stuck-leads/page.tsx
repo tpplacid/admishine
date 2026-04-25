@@ -1,6 +1,9 @@
 import { requireRole } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
 import { StuckLeadsClient } from './StuckLeadsClient'
+import { Lead } from '@/types'
+
+export const revalidate = 120
 
 export default async function StuckLeadsPage() {
   const admin = await requireRole(['ad'])
@@ -10,7 +13,7 @@ export default async function StuckLeadsPage() {
   const [{ data: warmStuck }, { data: hotStuck }] = await Promise.all([
     supabase
       .from('leads')
-      .select('*, owner:employees!leads_owner_id_fkey(id,name,role)')
+      .select('id, name, phone, source, main_stage, stage_entered_at, sla_deadline, owner_id, owner:employees!leads_owner_id_fkey(id,name,role)')
       .eq('org_id', admin.org_id)
       .in('main_stage', ['A', 'B'])
       .lt('stage_entered_at', new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString())
@@ -18,7 +21,7 @@ export default async function StuckLeadsPage() {
       .limit(500),
     supabase
       .from('leads')
-      .select('*, owner:employees!leads_owner_id_fkey(id,name,role)')
+      .select('id, name, phone, source, main_stage, stage_entered_at, sla_deadline, owner_id, owner:employees!leads_owner_id_fkey(id,name,role)')
       .eq('org_id', admin.org_id)
       .eq('main_stage', 'C')
       .lt('stage_entered_at', new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString())
@@ -26,5 +29,5 @@ export default async function StuckLeadsPage() {
       .limit(500),
   ])
 
-  return <StuckLeadsClient warmStuck={warmStuck || []} hotStuck={hotStuck || []} />
+  return <StuckLeadsClient warmStuck={(warmStuck || []) as unknown as Lead[]} hotStuck={(hotStuck || []) as unknown as Lead[]} />
 }
