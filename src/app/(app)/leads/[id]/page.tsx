@@ -21,7 +21,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
 
   if (!lead) notFound()
 
-  const [{ data: activities }, { data: templates }, { data: orgEmployees }] = await Promise.all([
+  const [{ data: activities }, { data: templates }, { data: orgEmployees }, { data: org }] = await Promise.all([
     supabase
       .from('activities')
       .select('*, employee:employees(id,name,role)')
@@ -38,7 +38,14 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
       .eq('org_id', lead.org_id)
       .eq('is_active', true)
       .limit(100),
+    supabase
+      .from('orgs')
+      .select('sla_config')
+      .eq('id', lead.org_id)
+      .single(),
   ])
+
+  const slaConfig = (org?.sla_config as Record<string, number> | null) || { A: 1, B: 5, C: 5, D: 20 }
 
   return (
     <LeadDetailClient
@@ -47,6 +54,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
       templates={templates || []}
       employee={employee}
       orgEmployees={(orgEmployees || []) as unknown as Employee[]}
+      slaConfig={slaConfig}
     />
   )
 }

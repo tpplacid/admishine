@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Lead, Activity, Employee, WaTemplate, LeadStage, SUB_STAGES, STAGE_LABELS, STAGE_A_TO_B_REQUIRED, STAGE_SLA_DAYS, SLA_EXCLUDED_SOURCES } from '@/types'
+import { Lead, Activity, Employee, WaTemplate, LeadStage, SUB_STAGES, STAGE_LABELS, STAGE_A_TO_B_REQUIRED, SLA_EXCLUDED_SOURCES } from '@/types'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 import { Input, Select, Textarea } from '@/components/ui/Input'
@@ -23,11 +23,12 @@ interface Props {
   templates: WaTemplate[]
   employee: Employee
   orgEmployees: Employee[]
+  slaConfig: Record<string, number>
 }
 
 const ALL_STAGES: LeadStage[] = ['0','A','B','C','D','E','F','G','X','Y']
 
-export function LeadDetailClient({ lead: initialLead, activities: initialActivities, templates, employee, orgEmployees }: Props) {
+export function LeadDetailClient({ lead: initialLead, activities: initialActivities, templates, employee, orgEmployees, slaConfig }: Props) {
   const router = useRouter()
   const [lead, setLead] = useState(initialLead)
   const [activities, setActivities] = useState(initialActivities)
@@ -102,8 +103,8 @@ export function LeadDetailClient({ lead: initialLead, activities: initialActivit
       updates.main_stage = stageDraft
       updates.stage_entered_at = new Date().toISOString()
 
-      // Reset SLA deadline based on new stage (skip for referral/offline leads)
-      const slaDays = STAGE_SLA_DAYS[stageDraft]
+      // Reset SLA deadline based on org-configured thresholds (skip for referral/offline leads)
+      const slaDays = slaConfig[stageDraft]
       if (slaDays && !SLA_EXCLUDED_SOURCES.includes(lead.source)) {
         const deadline = new Date()
         deadline.setDate(deadline.getDate() + slaDays)

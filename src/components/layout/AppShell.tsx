@@ -12,6 +12,7 @@ import {
   LayoutDashboard, Users, ClipboardList, Calendar, FileText,
   BarChart3, LogOut, Menu, Bell, Shield, UserCog,
   MessageSquare, CheckSquare, GitBranch, Upload, TrendingDown,
+  Settings, UsersRound,
 } from 'lucide-react'
 import { RealtimeNotifier } from '@/components/RealtimeNotifier'
 
@@ -35,17 +36,18 @@ const navItems: NavItem[] = [
 
 const adminNavItems: NavItem[] = [
   { href: '/admin/leads',            label: 'All Leads',        icon: <FileText size={17} /> },
-  { href: '/admin/employees',        label: 'Employees',        icon: <UserCog size={17} /> },
   { href: '/admin/allocation',       label: 'Allocation & Org', icon: <GitBranch size={17} /> },
-  { href: '/admin/attendance',       label: 'Attendance',       icon: <Calendar size={17} /> },
-  { href: '/admin/leaves',           label: 'Leave Mgmt',       icon: <ClipboardList size={17} /> },
   { href: '/admin/offline-approvals',label: 'Offline Approvals',icon: <CheckSquare size={17} /> },
   { href: '/admin/analytics',        label: 'Analytics',        icon: <BarChart3 size={17} /> },
   { href: '/admin/stuck-leads',      label: 'Stuck Leads',      icon: <TrendingDown size={17} /> },
-  { href: '/admin/templates',        label: 'WA Templates',     icon: <MessageSquare size={17} /> },
-  { href: '/admin/meta',             label: 'Meta Leads',       icon: <Shield size={17} /> },
-  { href: '/admin/sla',              label: 'SLA Log',          icon: <Bell size={17} /> },
-  { href: '/admin/bulk-upload',      label: 'Bulk Upload',      icon: <Upload size={17} /> },
+]
+
+const teamNavItems: NavItem[] = [
+  { href: '/admin/team-mgmt',        label: 'Team Management',  icon: <UsersRound size={17} /> },
+]
+
+const settingsNavItems: NavItem[] = [
+  { href: '/admin/settings',         label: 'Settings',         icon: <Settings size={17} /> },
 ]
 
 interface Props {
@@ -71,7 +73,7 @@ export function AppShell({ employee, children, notifCount = 0 }: Props) {
   const visibleNav = navItems.filter(item => !item.roles || item.roles.includes(employee.role))
 
   function NavLink({ item }: { item: NavItem }) {
-    const active = pathname === item.href || pathname.startsWith(item.href + '/')
+    const active = pathname === item.href || pathname.startsWith(item.href + '/') || pathname.startsWith(item.href.replace('/admin/settings', '/admin/settings').replace('/admin/team-mgmt', '/admin/team-mgmt'))
     return (
       <Link
         href={item.href}
@@ -106,6 +108,14 @@ export function AppShell({ employee, children, notifCount = 0 }: Props) {
               <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Admin</p>
             </div>
             {adminNavItems.map(item => <NavLink key={item.href} item={item} />)}
+            <div className="pt-4 pb-1 px-3">
+              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Team</p>
+            </div>
+            {teamNavItems.map(item => <NavLink key={item.href} item={item} />)}
+            <div className="pt-4 pb-1 px-3">
+              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Config</p>
+            </div>
+            {settingsNavItems.map(item => <NavLink key={item.href} item={item} />)}
           </>
         )}
       </nav>
