@@ -19,6 +19,8 @@ export function AdminLeadsClient({ admin, leads: initialLeads, employees }: Prop
   const [stageFilter, setStageFilter] = useState('')
   const [ownerFilter, setOwnerFilter] = useState('')
   const [sourceFilter, setSourceFilter] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
   const [selected, setSelected] = useState<string[]>([])
 
   // Transfer
@@ -47,8 +49,10 @@ export function AdminLeadsClient({ admin, leads: initialLeads, employees }: Prop
     if (stageFilter) l = l.filter(x => x.main_stage === stageFilter)
     if (ownerFilter) l = l.filter(x => x.owner_id === ownerFilter)
     if (sourceFilter) l = l.filter(x => x.source === sourceFilter)
+    if (dateFrom) l = l.filter(x => x.created_at >= dateFrom)
+    if (dateTo) l = l.filter(x => x.created_at <= dateTo + 'T23:59:59')
     return l
-  }, [leads, search, stageFilter, ownerFilter, sourceFilter])
+  }, [leads, search, stageFilter, ownerFilter, sourceFilter, dateFrom, dateTo])
 
   function toggleSelect(id: string) {
     setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
@@ -151,6 +155,35 @@ export function AdminLeadsClient({ admin, leads: initialLeads, employees }: Prop
         </div>
       </div>
 
+      {/* Payment summary */}
+      {(() => {
+        const totalPayments = filtered.reduce((sum, l) => sum + (l.application_fees || 0) + (l.booking_fees || 0) + (l.tuition_fees || 0), 0)
+        const appFees = filtered.reduce((sum, l) => sum + (l.application_fees || 0), 0)
+        const bookFees = filtered.reduce((sum, l) => sum + (l.booking_fees || 0), 0)
+        const tuitionFees = filtered.reduce((sum, l) => sum + (l.tuition_fees || 0), 0)
+        if (totalPayments === 0) return null
+        return (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="bg-emerald-50 rounded-xl border border-emerald-100 p-4">
+              <p className="text-xs text-emerald-600 font-medium">Total Collected</p>
+              <p className="text-xl font-bold text-emerald-800 mt-0.5">₹{totalPayments.toLocaleString('en-IN')}</p>
+            </div>
+            <div className="bg-white rounded-xl border border-slate-200 p-4">
+              <p className="text-xs text-slate-500 font-medium">Application Fees</p>
+              <p className="text-xl font-bold text-slate-800 mt-0.5">₹{appFees.toLocaleString('en-IN')}</p>
+            </div>
+            <div className="bg-white rounded-xl border border-slate-200 p-4">
+              <p className="text-xs text-slate-500 font-medium">Booking Fees</p>
+              <p className="text-xl font-bold text-slate-800 mt-0.5">₹{bookFees.toLocaleString('en-IN')}</p>
+            </div>
+            <div className="bg-white rounded-xl border border-slate-200 p-4">
+              <p className="text-xs text-slate-500 font-medium">Tuition Fees</p>
+              <p className="text-xl font-bold text-slate-800 mt-0.5">₹{tuitionFees.toLocaleString('en-IN')}</p>
+            </div>
+          </div>
+        )
+      })()}
+
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
         <div className="flex-1 relative min-w-[180px]">
@@ -172,6 +205,10 @@ export function AdminLeadsClient({ admin, leads: initialLeads, employees }: Prop
           <option value="offline">Offline</option>
           <option value="referral">Referral</option>
         </select>
+        <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+          className="px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+          className="px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
         <button onClick={selectAll} className="text-sm text-indigo-600 hover:underline whitespace-nowrap">
           Select all ({filtered.length})
         </button>

@@ -55,6 +55,9 @@ export function LeadDetailClient({ lead: initialLead, activities: initialActivit
     decision_maker: lead.decision_maker || '',
     income_status: lead.income_status || '',
     loan_status: lead.loan_status || '',
+    application_fees: lead.application_fees?.toString() || '',
+    booking_fees: lead.booking_fees?.toString() || '',
+    tuition_fees: lead.tuition_fees?.toString() || '',
   })
 
   const supabase = createClient()
@@ -92,6 +95,9 @@ export function LeadDetailClient({ lead: initialLead, activities: initialActivit
       decision_maker: fields.decision_maker || null,
       income_status: fields.income_status || null,
       loan_status: fields.loan_status || null,
+      application_fees: fields.application_fees ? parseFloat(fields.application_fees) : null,
+      booking_fees: fields.booking_fees ? parseFloat(fields.booking_fees) : null,
+      tuition_fees: fields.tuition_fees ? parseFloat(fields.tuition_fees) : null,
       next_followup_at: followupDraft || null,
       sub_stage: subStageDraft || null,
     }
@@ -311,6 +317,26 @@ export function LeadDetailClient({ lead: initialLead, activities: initialActivit
                   </select>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Payments */}
+          <Card>
+            <CardHeader><CardTitle>Payments</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-3 gap-4">
+                <Input label="Application Fees (₹)" type="number" value={fields.application_fees} onChange={e => setFields(p => ({...p, application_fees: e.target.value}))} placeholder="0" />
+                <Input label="Booking Fees (₹)" type="number" value={fields.booking_fees} onChange={e => setFields(p => ({...p, booking_fees: e.target.value}))} placeholder="0" />
+                <Input label="Tuition Fees (₹)" type="number" value={fields.tuition_fees} onChange={e => setFields(p => ({...p, tuition_fees: e.target.value}))} placeholder="0" />
+              </div>
+              {(fields.application_fees || fields.booking_fees || fields.tuition_fees) && (
+                <div className="bg-indigo-50 border border-indigo-100 rounded-lg px-4 py-3">
+                  <p className="text-xs text-indigo-500 font-medium">Total Collected</p>
+                  <p className="text-xl font-bold text-indigo-700">
+                    ₹{((parseFloat(fields.application_fees || '0') || 0) + (parseFloat(fields.booking_fees || '0') || 0) + (parseFloat(fields.tuition_fees || '0') || 0)).toLocaleString('en-IN')}
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
 

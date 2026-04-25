@@ -133,6 +133,24 @@ export function AnalyticsClient({ leads, employees, activities, slaBreaches }: P
     })
   }, [employees, activities])
 
+  // 11. Payment breakdown
+  const paymentData = useMemo(() => {
+    return employees.map(e => {
+      const empLeads = filteredLeads.filter(l => l.owner_id === e.id)
+      const app = empLeads.reduce((sum, l) => sum + (l.application_fees || 0), 0)
+      const booking = empLeads.reduce((sum, l) => sum + (l.booking_fees || 0), 0)
+      const tuition = empLeads.reduce((sum, l) => sum + (l.tuition_fees || 0), 0)
+      return { name: e.name.split(' ')[0], application: app, booking, tuition, total: app + booking + tuition }
+    }).filter(e => e.total > 0).sort((a, b) => b.total - a.total)
+  }, [filteredLeads, employees])
+
+  const paymentTotals = useMemo(() => {
+    const app = filteredLeads.reduce((sum, l) => sum + (l.application_fees || 0), 0)
+    const booking = filteredLeads.reduce((sum, l) => sum + (l.booking_fees || 0), 0)
+    const tuition = filteredLeads.reduce((sum, l) => sum + (l.tuition_fees || 0), 0)
+    return { app, booking, tuition, total: app + booking + tuition }
+  }, [filteredLeads])
+
   // 10. Conversion by course
   const courseData = useMemo(() => {
     const counts: Record<string, { total: number; won: number }> = {}
@@ -180,16 +198,36 @@ export function AnalyticsClient({ leads, employees, activities, slaBreaches }: P
       {/* Summary stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: 'Total Leads', value: filteredLeads.length, color: 'text-indigo-600' },
-          { label: 'Hot Leads', value: filteredLeads.filter(l => l.main_stage === 'C').length, color: 'text-orange-600' },
-          { label: 'Closed Won', value: filteredLeads.filter(l => l.main_stage === 'F').length, color: 'text-green-600' },
-          { label: 'SLA Breaches', value: slaBreaches.filter(b => b.resolution === 'pending').length, color: 'text-red-600' },
+          { label: 'Total Leads', value: String(filteredLeads.length), color: 'text-indigo-600' },
+          { label: 'Hot Leads', value: String(filteredLeads.filter(l => l.main_stage === 'C').length), color: 'text-orange-600' },
+          { label: 'Closed Won', value: String(filteredLeads.filter(l => l.main_stage === 'F').length), color: 'text-green-600' },
+          { label: 'SLA Breaches', value: String(slaBreaches.filter(b => b.resolution === 'pending').length), color: 'text-red-600' },
         ].map(s => (
           <div key={s.label} className="bg-white border border-slate-200 rounded-xl p-4">
             <p className="text-xs text-slate-500 font-medium">{s.label}</p>
             <p className={`text-3xl font-bold mt-1 ${s.color}`}>{s.value}</p>
           </div>
         ))}
+      </div>
+
+      {/* Payment summary cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4">
+          <p className="text-xs text-emerald-600 font-medium">Total Collected</p>
+          <p className="text-2xl font-bold text-emerald-800 mt-1 truncate">₹{paymentTotals.total.toLocaleString('en-IN')}</p>
+        </div>
+        <div className="bg-white border border-slate-200 rounded-xl p-4">
+          <p className="text-xs text-slate-500 font-medium">Application Fees</p>
+          <p className="text-2xl font-bold text-slate-800 mt-1 truncate">₹{paymentTotals.app.toLocaleString('en-IN')}</p>
+        </div>
+        <div className="bg-white border border-slate-200 rounded-xl p-4">
+          <p className="text-xs text-slate-500 font-medium">Booking Fees</p>
+          <p className="text-2xl font-bold text-slate-800 mt-1 truncate">₹{paymentTotals.booking.toLocaleString('en-IN')}</p>
+        </div>
+        <div className="bg-white border border-slate-200 rounded-xl p-4">
+          <p className="text-xs text-slate-500 font-medium">Tuition Fees</p>
+          <p className="text-2xl font-bold text-slate-800 mt-1 truncate">₹{paymentTotals.tuition.toLocaleString('en-IN')}</p>
+        </div>
       </div>
 
       {/* 1. Lead Funnel */}
@@ -362,6 +400,27 @@ export function AnalyticsClient({ leads, employees, activities, slaBreaches }: P
           {courseData.length === 0 && <p className="text-center text-sm text-slate-400 py-4">No course data</p>}
         </CardContent>
       </Card>
+
+      {/* 11. Payment breakdown by employee */}
+      {paymentData.length > 0 && (
+        <Card>
+          <CardHeader><CardTitle>Payment Collections by Employee</CardTitle></CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={paymentData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                <YAxis tickFormatter={v => `₹${(v/1000).toFixed(0)}k`} />
+                <Tooltip formatter={(v) => typeof v === 'number' ? `₹${v.toLocaleString('en-IN')}` : v} />
+                <Legend />
+                <Bar dataKey="application" stackId="a" fill="#6366f1" name="Application" radius={[0,0,0,0]} />
+                <Bar dataKey="booking" stackId="a" fill="#22c55e" name="Booking" radius={[0,0,0,0]} />
+                <Bar dataKey="tuition" stackId="a" fill="#f59e0b" name="Tuition" radius={[4,4,0,0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      )}
 
       {/* 9. Activity heatmap */}
       <Card>

@@ -60,6 +60,9 @@ export interface Lead {
   approved: boolean
   approved_by: string | null
   meta_lead_id: string | null
+  application_fees: number | null
+  booking_fees: number | null
+  tuition_fees: number | null
   created_at: string
   updated_at: string
   // joined

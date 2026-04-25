@@ -42,6 +42,8 @@ export default async function DashboardPage() {
     hot: visibleLeads.filter(l => l.main_stage === 'C').length,
     followup: visibleLeads.filter(l => l.main_stage === 'B').length,
     closed: visibleLeads.filter(l => l.main_stage === 'F').length,
+    totalPayments: visibleLeads.reduce((sum, l) =>
+      sum + (l.application_fees || 0) + (l.booking_fees || 0) + (l.tuition_fees || 0), 0),
   }
 
   return <DashboardClient employee={employee} leads={leads || []} approvalMap={approvalMap} stats={stats} />

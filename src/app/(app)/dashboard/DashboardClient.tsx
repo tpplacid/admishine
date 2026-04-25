@@ -18,7 +18,7 @@ interface Props {
   employee: Employee
   leads: Lead[]
   approvalMap: Record<string, string>
-  stats: { total: number; hot: number; followup: number; closed: number }
+  stats: { total: number; hot: number; followup: number; closed: number; totalPayments: number }
 }
 
 export function DashboardClient({ employee, leads: initialLeads, approvalMap: initialApprovalMap, stats }: Props) {
@@ -28,6 +28,8 @@ export function DashboardClient({ employee, leads: initialLeads, approvalMap: in
   const [search, setSearch] = useState('')
   const [stageFilter, setStageFilter] = useState('')
   const [sourceFilter, setSourceFilter] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
   const [showNewLead, setShowNewLead] = useState(false)
 
   useEffect(() => {
@@ -68,7 +70,7 @@ export function DashboardClient({ employee, leads: initialLeads, approvalMap: in
 
   const newCount = newLeadIds.size
 
-  const filtered = useMemo(() => {
+  const filtered = useMemo<Lead[]>(() => {
     let l = leads
     // Remove rejected offline/referral leads
     l = l.filter(lead => {
@@ -80,6 +82,8 @@ export function DashboardClient({ employee, leads: initialLeads, approvalMap: in
     if (search) { const q = search.toLowerCase(); l = l.filter(x => x.name.toLowerCase().includes(q) || x.phone.includes(q)) }
     if (stageFilter) l = l.filter(x => x.main_stage === stageFilter as Lead['main_stage'])
     if (sourceFilter) l = l.filter(x => x.source === sourceFilter)
+    if (dateFrom) l = l.filter(x => x.created_at >= dateFrom)
+    if (dateTo) l = l.filter(x => x.created_at <= dateTo + 'T23:59:59')
     return [...l].sort((a, b) => {
       const aNew = newLeadIds.has(a.id) ? 0 : 1
       const bNew = newLeadIds.has(b.id) ? 0 : 1
@@ -121,19 +125,17 @@ export function DashboardClient({ employee, leads: initialLeads, approvalMap: in
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           {[
-            { label: 'Total',      value: stats.total,    color: 'text-slate-800',   bg: 'bg-white',      accent: '#94a3b8' },
-            { label: 'Hot Leads',  value: stats.hot,      color: 'text-orange-600',  bg: 'bg-orange-50',  accent: '#f97316' },
-            { label: 'Follow Up',  value: stats.followup, color: 'text-amber-600',   bg: 'bg-amber-50',   accent: '#f59e0b' },
-            { label: 'Closed Won', value: stats.closed,   color: 'text-indigo-600',  bg: 'bg-indigo-50',  accent: '#4f46e5' },
+            { label: 'Total',      value: stats.total.toString(),    color: 'text-slate-800',   bg: 'bg-white',      accent: '#94a3b8' },
+            { label: 'Hot Leads',  value: stats.hot.toString(),      color: 'text-orange-600',  bg: 'bg-orange-50',  accent: '#f97316' },
+            { label: 'Follow Up',  value: stats.followup.toString(), color: 'text-amber-600',   bg: 'bg-amber-50',   accent: '#f59e0b' },
+            { label: 'Closed Won', value: stats.closed.toString(),   color: 'text-indigo-600',  bg: 'bg-indigo-50',  accent: '#4f46e5' },
+            { label: 'Total Payments', value: `₹${stats.totalPayments.toLocaleString('en-IN')}`, color: 'text-emerald-700', bg: 'bg-emerald-50', accent: '#10b981' },
           ].map(s => (
             <div key={s.label} className={`${s.bg} rounded-2xl border border-slate-200 p-4 shadow-sm`}>
               <p className="text-xs text-slate-500 font-medium">{s.label}</p>
-              <p className={`text-3xl font-bold mt-0.5 ${s.color}`}>{s.value}</p>
-              <div className="mt-2 h-1 rounded-full bg-slate-100 overflow-hidden">
-                <div className="h-full rounded-full transition-all" style={{ width: stats.total ? `${Math.min(100, (s.value / stats.total) * 100)}%` : '0%', background: s.accent }} />
-              </div>
+              <p className={`text-2xl font-bold mt-0.5 ${s.color} truncate`}>{s.value}</p>
             </div>
           ))}
         </div>
@@ -155,6 +157,10 @@ export function DashboardClient({ employee, leads: initialLeads, approvalMap: in
             <option value="offline">Offline</option>
             <option value="referral">Referral</option>
           </select>
+          <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+            className="px-3 py-2 border border-slate-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm" />
+          <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+            className="px-3 py-2 border border-slate-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm" />
         </div>
 
         {filtered.length === 0 ? (
