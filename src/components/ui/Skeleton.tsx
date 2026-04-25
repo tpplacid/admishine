@@ -22,12 +22,20 @@ export function TableSkeleton({ rows = 8 }: { rows?: number }) {
   return (
     <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
       <div className="bg-slate-50 border-b border-slate-200 px-4 py-3 flex gap-6">
-        {[120, 80, 100, 80, 100].map((w, i) => <Skeleton key={i} className={`h-3 w-${w}`} style={{ width: w }} />)}
+        <div className="animate-pulse bg-slate-200 rounded h-3 w-32" />
+        <div className="animate-pulse bg-slate-200 rounded h-3 w-20" />
+        <div className="animate-pulse bg-slate-200 rounded h-3 w-24" />
+        <div className="animate-pulse bg-slate-200 rounded h-3 w-20" />
+        <div className="animate-pulse bg-slate-200 rounded h-3 w-24" />
       </div>
       <div className="divide-y divide-slate-100">
         {Array.from({ length: rows }).map((_, i) => (
           <div key={i} className="px-4 py-3 flex gap-6 items-center">
-            {[140, 90, 110, 70, 90].map((w, j) => <Skeleton key={j} className="h-3 rounded" style={{ width: w }} />)}
+            <div className="animate-pulse bg-slate-200 rounded h-3 w-36" />
+            <div className="animate-pulse bg-slate-200 rounded h-3 w-24" />
+            <div className="animate-pulse bg-slate-200 rounded h-3 w-28" />
+            <div className="animate-pulse bg-slate-200 rounded h-3 w-16" />
+            <div className="animate-pulse bg-slate-200 rounded h-3 w-24" />
           </div>
         ))}
       </div>
