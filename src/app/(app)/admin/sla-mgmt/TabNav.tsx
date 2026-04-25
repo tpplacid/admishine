@@ -3,12 +3,11 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 const TABS = [
-  { href: '/admin/settings/templates', label: 'WA Templates' },
-  { href: '/admin/settings/meta', label: 'Meta Leads' },
-  { href: '/admin/settings/bulk-upload', label: 'Bulk Upload' },
+  { href: '/admin/sla-mgmt/thresholds', label: 'SLA Thresholds' },
+  { href: '/admin/sla-mgmt/log', label: 'Breach Log' },
 ]
 
-export function SettingsTabNav() {
+export function SlaTabNav() {
   const pathname = usePathname()
   return (
     <div className="bg-white border-b border-slate-200 px-4 md:px-6">

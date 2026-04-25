@@ -6,6 +6,7 @@ const TABS = [
   { href: '/admin/team-mgmt/employees', label: 'Employees' },
   { href: '/admin/team-mgmt/attendance', label: 'Attendance' },
   { href: '/admin/team-mgmt/leaves', label: 'Leave Management' },
+  { href: '/admin/team-mgmt/allocation', label: 'Allocation & Org' },
 ]
 
 export function TeamTabNav() {
