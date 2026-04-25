@@ -12,7 +12,7 @@ import {
   LayoutDashboard, Users, ClipboardList, Calendar, FileText,
   BarChart3, LogOut, Menu, Bell, Shield, UserCog,
   MessageSquare, CheckSquare, GitBranch, Upload, TrendingDown,
-  Settings, UsersRound, AlertCircle,
+  Settings, UsersRound, AlertCircle, PieChart,
 } from 'lucide-react'
 import { RealtimeNotifier } from '@/components/RealtimeNotifier'
 
@@ -37,8 +37,11 @@ const navItems: NavItem[] = [
 const adminNavItems: NavItem[] = [
   { href: '/admin/leads',            label: 'All Leads',        icon: <FileText size={17} /> },
   { href: '/admin/offline-approvals',label: 'Offline Approvals',icon: <CheckSquare size={17} /> },
-  { href: '/admin/analytics',        label: 'Analytics',        icon: <BarChart3 size={17} /> },
   { href: '/admin/stuck-leads',      label: 'Stuck Leads',      icon: <TrendingDown size={17} /> },
+]
+
+const analyticsNavItems: NavItem[] = [
+  { href: '/admin/reports',          label: 'Analytics',        icon: <PieChart size={17} /> },
 ]
 
 const teamNavItems: NavItem[] = [
@@ -111,6 +114,10 @@ export function AppShell({ employee, children, notifCount = 0 }: Props) {
               <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Admin</p>
             </div>
             {adminNavItems.map(item => <NavLink key={item.href} item={item} />)}
+            <div className="pt-4 pb-1 px-3">
+              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Analytics</p>
+            </div>
+            {analyticsNavItems.map(item => <NavLink key={item.href} item={item} />)}
             <div className="pt-4 pb-1 px-3">
               <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Team</p>
             </div>
