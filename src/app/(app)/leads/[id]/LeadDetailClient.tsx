@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Lead, Activity, Employee, WaTemplate, LeadStage, SUB_STAGES, STAGE_LABELS, STAGE_A_TO_B_REQUIRED } from '@/types'
+import { Lead, Activity, Employee, WaTemplate, LeadStage, SUB_STAGES, STAGE_LABELS, STAGE_A_TO_B_REQUIRED, STAGE_SLA_DAYS, SLA_EXCLUDED_SOURCES } from '@/types'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 import { Input, Select, Textarea } from '@/components/ui/Input'
@@ -100,6 +100,17 @@ export function LeadDetailClient({ lead: initialLead, activities: initialActivit
       const err = validateStageTransition(lead.main_stage, stageDraft)
       if (err) { toast.error(err); setSaving(false); return }
       updates.main_stage = stageDraft
+      updates.stage_entered_at = new Date().toISOString()
+
+      // Reset SLA deadline based on new stage (skip for referral/offline leads)
+      const slaDays = STAGE_SLA_DAYS[stageDraft]
+      if (slaDays && !SLA_EXCLUDED_SOURCES.includes(lead.source)) {
+        const deadline = new Date()
+        deadline.setDate(deadline.getDate() + slaDays)
+        updates.sla_deadline = deadline.toISOString()
+      } else {
+        updates.sla_deadline = null
+      }
 
       await supabase.from('activities').insert({
         org_id: lead.org_id, lead_id: lead.id, employee_id: employee.id,

@@ -159,6 +159,16 @@ export interface OfflineLeadApproval {
 }
 
 // Stage config
+// SLA deadline in days per stage (null = no SLA). Referral/offline leads are excluded from breach.
+export const STAGE_SLA_DAYS: Partial<Record<LeadStage, number>> = {
+  'A': 1,
+  'B': 5,
+  'C': 5,
+  'D': 20,
+}
+
+export const SLA_EXCLUDED_SOURCES = ['referral', 'offline']
+
 export const STAGE_LABELS: Record<LeadStage, string> = {
   '0': 'Lead Gen',
   'A': 'Cold/Warm Calling',
