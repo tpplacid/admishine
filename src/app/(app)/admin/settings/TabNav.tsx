@@ -3,6 +3,8 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 const TABS = [
+  { href: '/admin/settings/pipeline', label: 'Pipeline' },
+  { href: '/admin/settings/roles', label: 'Roles' },
   { href: '/admin/settings/templates', label: 'WA Templates' },
   { href: '/admin/settings/meta', label: 'Meta Leads' },
   { href: '/admin/settings/bulk-upload', label: 'Bulk Upload' },

@@ -1,7 +1,49 @@
 import { requireAuth } from '@/lib/auth'
 import { AppShell } from '@/components/layout/AppShell'
+import { OrgConfigProvider, OrgStage, OrgRole, DEFAULT_STAGES, DEFAULT_ROLES } from '@/context/OrgConfigContext'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const employee = await requireAuth()
-  return <AppShell employee={employee}>{children}</AppShell>
+
+  let stages: OrgStage[] = []
+  let roles: OrgRole[] = []
+
+  try {
+    const supabase = createAdminClient()
+    const [{ data: stageRows }, { data: roleRows }] = await Promise.all([
+      supabase
+        .from('org_stages')
+        .select('*, substages:org_stage_substages(label)')
+        .eq('org_id', employee.org_id)
+        .order('position'),
+      supabase
+        .from('org_roles')
+        .select('*')
+        .eq('org_id', employee.org_id)
+        .order('position'),
+    ])
+    if (stageRows && stageRows.length > 0) {
+      stages = stageRows.map(s => ({ ...s, substages: (s.substages ?? []).map((ss: { label: string }) => ss.label) }))
+    } else {
+      stages = DEFAULT_STAGES.map((s, i) => ({ ...s, id: i.toString() }))
+    }
+    if (roleRows && roleRows.length > 0) {
+      roles = roleRows as OrgRole[]
+    } else {
+      roles = DEFAULT_ROLES.map((r, i) => ({ ...r, id: i.toString() }))
+    }
+  } catch {
+    stages = DEFAULT_STAGES.map((s, i) => ({ ...s, id: i.toString() }))
+    roles = DEFAULT_ROLES.map((r, i) => ({ ...r, id: i.toString() }))
+  }
+
+  const stageMap = Object.fromEntries(stages.map(s => [s.key, s]))
+  const roleMap = Object.fromEntries(roles.map(r => [r.key, r]))
+
+  return (
+    <OrgConfigProvider config={{ stages, roles, stageMap, roleMap }}>
+      <AppShell employee={employee}>{children}</AppShell>
+    </OrgConfigProvider>
+  )
 }
