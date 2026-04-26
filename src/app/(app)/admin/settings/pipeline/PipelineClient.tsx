@@ -77,18 +77,53 @@ export function PipelineClient({ orgId, initialStages, initialFlows }: Props) {
       for (const [k, el] of Object.entries(nodeRefs.current)) {
         if (el) rects[k] = el.getBoundingClientRect()
       }
+
+      // For each target stage, count how many arrows arrive so we can distribute entry points
+      const inbound: Record<string, string[]> = {}
+      for (const f of flows) {
+        if (!inbound[f.to_stage]) inbound[f.to_stage] = []
+        inbound[f.to_stage].push(f.from_stage)
+      }
+      const stageMap = Object.fromEntries(stages.map(s => [s.key, s]))
+
       const newArrows = flows.map(f => {
         const fr = rects[f.from_stage]
         const tr = rects[f.to_stage]
         if (!fr || !tr) return null
-        const x1 = fr.right - cRect.left
-        const y1 = fr.top + fr.height / 2 - cRect.top
-        const x2 = tr.left - cRect.left - 6
-        const y2 = tr.top + tr.height / 2 - cRect.top
-        const dx = Math.max(Math.abs(x2 - x1) * 0.45, 40)
-        const cp1x = x1 + dx, cp1y = y1
-        const cp2x = x2 - dx, cp2y = y2
-        return { key: `${f.from_stage}-${f.to_stage}`, d: `M ${x1} ${y1} C ${cp1x} ${cp1y} ${cp2x} ${cp2y} ${x2} ${y2}` }
+        const fromS = stageMap[f.from_stage]
+        const toS = stageMap[f.to_stage]
+        const fromIsMain = !fromS?.is_won && !fromS?.is_lost
+        const toIsMain = !toS?.is_won && !toS?.is_lost
+
+        let d: string
+        if (fromIsMain && !toIsMain) {
+          // Top row → bottom row: exit from bottom of source, enter top of target
+          // Distribute entry x across target's top edge based on index
+          const arrivals = inbound[f.to_stage] || [f.from_stage]
+          const idx = arrivals.indexOf(f.from_stage)
+          const total = arrivals.length
+          const entryX = tr.left - cRect.left + (tr.width / (total + 1)) * (idx + 1)
+          const exitX = fr.left - cRect.left + fr.width * 0.6
+          const exitY = fr.bottom - cRect.top
+          const entryY = tr.top - cRect.top - 6
+          d = `M ${exitX} ${exitY} C ${exitX} ${exitY + 50} ${entryX} ${entryY - 50} ${entryX} ${entryY}`
+        } else if (!fromIsMain && toIsMain) {
+          // Bottom row → top row (e.g. F → G): exit top of source, enter bottom of target
+          const exitX = fr.left - cRect.left + fr.width / 2
+          const exitY = fr.top - cRect.top
+          const entryX = tr.left - cRect.left + tr.width / 2
+          const entryY = tr.bottom - cRect.top + 6
+          d = `M ${exitX} ${exitY} C ${exitX} ${exitY - 40} ${entryX} ${entryY + 40} ${entryX} ${entryY}`
+        } else {
+          // Same row: right edge → left edge horizontal bezier
+          const x1 = fr.right - cRect.left
+          const y1 = fr.top + fr.height / 2 - cRect.top
+          const x2 = tr.left - cRect.left - 6
+          const y2 = tr.top + tr.height / 2 - cRect.top
+          const dx = Math.max(Math.abs(x2 - x1) * 0.45, 30)
+          d = `M ${x1} ${y1} C ${x1 + dx} ${y1} ${x2 - dx} ${y2} ${x2} ${y2}`
+        }
+        return { key: `${f.from_stage}-${f.to_stage}`, d }
       }).filter(Boolean) as Array<{ key: string; d: string }>
       setArrows(newArrows)
     }
@@ -374,9 +409,9 @@ export function PipelineClient({ orgId, initialStages, initialFlows }: Props) {
           <div>
             <p className="text-xs text-brand-500 font-semibold mb-3">Visual flow</p>
             <div className="bg-brand-50 rounded-xl p-6 overflow-x-auto">
-              <div ref={chartRef} className="relative" style={{ minHeight: terminalStages.length > 0 ? 160 : 80 }}>
+              <div ref={chartRef} className="relative" style={{ minHeight: terminalStages.length > 0 ? 220 : 80 }}>
                 {/* Main stages */}
-                <div className="flex flex-wrap gap-3 mb-10">
+                <div className="flex flex-wrap gap-3 mb-16">
                   {mainStages.map(s => (
                     <div key={s.key} ref={el => { nodeRefs.current[s.key] = el }}
                       className={`flex flex-col items-center px-3 py-2 rounded-xl text-xs font-bold shadow-sm min-w-[72px] ${s.color_bg} ${s.color_text}`}>
