@@ -2,7 +2,8 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { Employee, Lead, STAGE_LABELS } from '@/types'
+import { Employee, Lead } from '@/types'
+import { useOrgConfig } from '@/context/OrgConfigContext'
 import { LeadCard } from '@/components/leads/LeadCard'
 import { Card, CardContent } from '@/components/ui/Card'
 import { getInitials } from '@/lib/utils'
@@ -10,6 +11,8 @@ import { getInitials } from '@/lib/utils'
 interface Props { manager: Employee; reports: Employee[]; leads: Lead[] }
 
 export function TeamClient({ manager, reports, leads }: Props) {
+  const { stages } = useOrgConfig()
+  const activeStages = stages.filter(s => !s.is_lost)
   const [selectedEmployee, setSelectedEmployee] = useState<string>('all')
 
   const filtered = useMemo(() => {
@@ -48,11 +51,11 @@ export function TeamClient({ manager, reports, leads }: Props) {
 
       {/* Stage summary */}
       <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
-        {['A','B','C','D','F'].map(stage => (
-          <div key={stage} className="bg-white border border-slate-200 rounded-xl p-3 text-center">
-            <p className="text-xs text-slate-500">{STAGE_LABELS[stage as keyof typeof STAGE_LABELS]}</p>
-            <p className="text-xl font-bold text-slate-900 mt-1">{filtered.filter(l => l.main_stage === stage).length}</p>
-            <p className="text-xs text-slate-400">{stage}</p>
+        {activeStages.map(s => (
+          <div key={s.key} className="bg-white border border-slate-200 rounded-xl p-3 text-center">
+            <p className="text-xs text-slate-500">{s.label}</p>
+            <p className="text-xl font-bold text-slate-900 mt-1">{filtered.filter(l => l.main_stage === s.key).length}</p>
+            <p className="text-xs text-slate-400">{s.key}</p>
           </div>
         ))}
       </div>

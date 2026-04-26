@@ -1,18 +1,14 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
-import { Employee, Lead, STAGE_LABELS } from '@/types'
+import { Employee, Lead } from '@/types'
 import { LeadCard } from '@/components/leads/LeadCard'
 import { Button } from '@/components/ui/Button'
 import { Plus, Search, Bell } from 'lucide-react'
 import { NewLeadModal } from './NewLeadModal'
 import { createClient } from '@/lib/supabase/client'
 import { NotificationBanner } from '@/components/NotificationBanner'
-
-const STAGES = [
-  { value: '', label: 'All Stages' },
-  ...Object.entries(STAGE_LABELS).map(([k, v]) => ({ value: k, label: v })),
-]
+import { useOrgConfig } from '@/context/OrgConfigContext'
 
 interface Props {
   employee: Employee
@@ -22,6 +18,7 @@ interface Props {
 }
 
 export function DashboardClient({ employee, leads: initialLeads, approvalMap: initialApprovalMap, stats }: Props) {
+  const { stages } = useOrgConfig()
   const [leads, setLeads] = useState(initialLeads)
   const [approvalMap, setApprovalMap] = useState<Record<string, string>>(initialApprovalMap)
   const [newLeadIds, setNewLeadIds] = useState<Set<string>>(new Set())
@@ -155,7 +152,8 @@ export function DashboardClient({ employee, leads: initialLeads, approvalMap: in
           </div>
           <select value={stageFilter} onChange={e => setStageFilter(e.target.value)}
             className="px-3 py-2 border border-brand-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-400 shadow-sm text-brand-700">
-            {STAGES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+            <option value="">All Stages</option>
+            {stages.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
           </select>
           <select value={sourceFilter} onChange={e => setSourceFilter(e.target.value)}
             className="px-3 py-2 border border-brand-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-400 shadow-sm text-brand-700">

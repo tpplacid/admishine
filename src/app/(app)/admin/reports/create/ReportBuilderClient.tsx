@@ -6,7 +6,8 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts'
 import { createClient } from '@/lib/supabase/client'
-import { Employee, STAGE_LABELS } from '@/types'
+import { Employee } from '@/types'
+import { useOrgConfig } from '@/context/OrgConfigContext'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { subDays, format } from 'date-fns'
@@ -131,6 +132,7 @@ function renderChart(chartType: 'bar' | 'line' | 'pie', data: ChartDataPoint[]) 
 }
 
 export function ReportBuilderClient({ orgId, employeeId, employees }: Props) {
+  const { stageMap } = useOrgConfig()
   const [isDesktop, setIsDesktop] = useState(false)
   const [reportName, setReportName] = useState('')
   const [metric, setMetric] = useState<ReportConfig['metric']>('leads')
@@ -202,7 +204,7 @@ export function ReportBuilderClient({ orgId, employeeId, employees }: Props) {
         if (groupBy === 'stage') {
           data = aggregateByKey(leads, (l) => {
             const stage = l.main_stage as string
-            return stage ? `${stage} — ${STAGE_LABELS[stage as keyof typeof STAGE_LABELS] || stage}` : ''
+            return stage ? `${stage} — ${stageMap[stage]?.label ?? stage}` : ''
           })
         } else if (groupBy === 'source') {
           data = aggregateByKey(leads, (l) => (l.source as string) || 'Unknown')
@@ -253,7 +255,7 @@ export function ReportBuilderClient({ orgId, employeeId, employees }: Props) {
         if (groupBy === 'stage') {
           data = aggregateByKey(breaches, (b) => {
             const stage = b.stage as string
-            return stage ? `${stage} — ${STAGE_LABELS[stage as keyof typeof STAGE_LABELS] || stage}` : ''
+            return stage ? `${stage} — ${stageMap[stage]?.label ?? stage}` : ''
           })
         } else if (groupBy === 'owner') {
           data = aggregateByKey(breaches, (b) => {

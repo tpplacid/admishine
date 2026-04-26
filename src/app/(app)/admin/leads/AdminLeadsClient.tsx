@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Employee, Lead, STAGE_LABELS, LeadStage } from '@/types'
+import { Employee, Lead, LeadStage } from '@/types'
+import { useOrgConfig } from '@/context/OrgConfigContext'
 import { LeadCard } from '@/components/leads/LeadCard'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
@@ -14,6 +15,7 @@ import Link from 'next/link'
 interface Props { admin: Employee; leads: Lead[]; employees: Employee[] }
 
 export function AdminLeadsClient({ admin, leads: initialLeads, employees }: Props) {
+  const { stages } = useOrgConfig()
   const [leads, setLeads] = useState(initialLeads)
   const [search, setSearch] = useState('')
   const [stageFilter, setStageFilter] = useState('')
@@ -200,7 +202,7 @@ export function AdminLeadsClient({ admin, leads: initialLeads, employees }: Prop
         </div>
         <select value={stageFilter} onChange={e => setStageFilter(e.target.value)} className="px-3 py-2 border border-brand-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-400 text-brand-700">
           <option value="">All Stages</option>
-          {Object.entries(STAGE_LABELS).map(([k,v]) => <option key={k} value={k}>{v}</option>)}
+          {stages.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
         </select>
         <select value={ownerFilter} onChange={e => setOwnerFilter(e.target.value)} className="px-3 py-2 border border-brand-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-400 text-brand-700">
           <option value="">All Owners</option>
@@ -297,7 +299,7 @@ export function AdminLeadsClient({ admin, leads: initialLeads, employees }: Prop
           <p className="text-sm text-slate-500">All selected leads will be moved to the chosen stage.</p>
           <select value={newStage} onChange={e => setNewStage(e.target.value)} className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
             <option value="">Select stage…</option>
-            {Object.entries(STAGE_LABELS).map(([k,v]) => <option key={k} value={k}>{v}</option>)}
+            {stages.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
           </select>
           <div className="flex gap-2">
             <Button variant="outline" className="flex-1" onClick={() => setStageModal(false)}>Cancel</Button>

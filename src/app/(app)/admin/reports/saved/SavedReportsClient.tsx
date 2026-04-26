@@ -6,7 +6,8 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts'
 import { createClient } from '@/lib/supabase/client'
-import { Employee, STAGE_LABELS } from '@/types'
+import { Employee } from '@/types'
+import { useOrgConfig } from '@/context/OrgConfigContext'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { subDays, format } from 'date-fns'
@@ -144,6 +145,7 @@ function ReportCard({
   onDelete: (id: string) => void
   onToggleVisibility: (id: string, value: boolean) => void
 }) {
+  const { stageMap } = useOrgConfig()
   const [expanded, setExpanded] = useState(false)
   const [chartData, setChartData] = useState<ChartDataPoint[] | null>(null)
   const [loading, setLoading] = useState(false)
@@ -170,7 +172,7 @@ function ReportCard({
         if (config.groupBy === 'stage') {
           data = aggregateByKey(leads, (l) => {
             const stage = l.main_stage as string
-            return stage ? `${stage} — ${STAGE_LABELS[stage as keyof typeof STAGE_LABELS] || stage}` : ''
+            return stage ? `${stage} — ${stageMap[stage]?.label ?? stage}` : ''
           })
         } else if (config.groupBy === 'source') {
           data = aggregateByKey(leads, (l) => (l.source as string) || 'Unknown')
@@ -215,7 +217,7 @@ function ReportCard({
         if (config.groupBy === 'stage') {
           data = aggregateByKey(breaches, (b) => {
             const stage = b.stage as string
-            return stage ? `${stage} — ${STAGE_LABELS[stage as keyof typeof STAGE_LABELS] || stage}` : ''
+            return stage ? `${stage} — ${stageMap[stage]?.label ?? stage}` : ''
           })
         } else if (config.groupBy === 'owner') {
           data = aggregateByKey(breaches, (b) => {
@@ -370,6 +372,7 @@ function ReportCard({
 }
 
 export function SavedReportsClient({ reports: initialReports, employees, orgId }: Props) {
+  const { stageMap } = useOrgConfig()
   const [isDesktop, setIsDesktop] = useState(false)
   const [reports, setReports] = useState<SavedReport[]>(initialReports)
 

@@ -6,7 +6,8 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   AreaChart, Area, ComposedChart,
 } from 'recharts'
-import { Lead, Employee, STAGE_LABELS, LeadStage } from '@/types'
+import { Lead, Employee, LeadStage } from '@/types'
+import { useOrgConfig } from '@/context/OrgConfigContext'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { format, subDays, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, startOfMonth, startOfWeek, parseISO } from 'date-fns'
 
@@ -22,6 +23,9 @@ const TEAL = ['#3d9191', '#2a7070', '#1a4a50', '#88b8b8', '#5c9c9c', '#1f5560', 
 type GroupBy = 'daily' | 'weekly' | 'monthly'
 
 export function AnalyticsClient({ leads, employees, activities, slaBreaches }: Props) {
+  const { stages, stageMap } = useOrgConfig()
+  const activeStages = stages.filter(s => !s.is_lost)
+  const stageOrder = stages.map(s => s.key)
   const [dateRange, setDateRange] = useState(30)
   const [groupBy, setGroupBy] = useState<GroupBy>('daily')
   const [empFilter, setEmpFilter] = useState('')
@@ -52,12 +56,11 @@ export function AnalyticsClient({ leads, employees, activities, slaBreaches }: P
 
   // ── 1. Lead Funnel ──────────────────────────────────────────────────────────
   const funnelData = useMemo(() => {
-    const stages: LeadStage[] = ['0', 'A', 'B', 'C', 'D', 'F']
-    return stages.map(s => ({
-      name: STAGE_LABELS[s],
-      value: filteredLeads.filter(l => l.main_stage === s).length,
+    return activeStages.map(s => ({
+      name: s.label,
+      value: filteredLeads.filter(l => l.main_stage === s.key).length,
     }))
-  }, [filteredLeads])
+  }, [filteredLeads, activeStages])
 
   // ── 2. Stage Conversion Rates ───────────────────────────────────────────────
   const conversionData = useMemo(() => {
@@ -68,12 +71,12 @@ export function AnalyticsClient({ leads, employees, activities, slaBreaches }: P
     return pairs.map(([from, to, label]) => {
       const fromCount = filteredLeads.filter(l => {
         const s = l.main_stage
-        const order: LeadStage[] = ['0','A','B','C','D','E','F','G','X','Y']
+        const order = stageOrder as LeadStage[]
         return order.indexOf(s) >= order.indexOf(from)
       }).length
       const toCount = filteredLeads.filter(l => {
         const s = l.main_stage
-        const order: LeadStage[] = ['0','A','B','C','D','E','F','G','X','Y']
+        const order = stageOrder as LeadStage[]
         return order.indexOf(s) >= order.indexOf(to)
       }).length
       const rate = fromCount > 0 ? Math.round((toCount / fromCount) * 100) : 0
@@ -149,24 +152,22 @@ export function AnalyticsClient({ leads, employees, activities, slaBreaches }: P
 
   // ── 7. Workload by stage (stacked bar per employee) ─────────────────────────
   const workloadData = useMemo(() => {
-    const stages: LeadStage[] = ['0','A','B','C','D','F']
     return employees.map(e => {
       const row: Record<string, string | number> = { name: e.name.split(' ')[0] }
-      for (const s of stages) row[s] = filteredLeads.filter(l => l.owner_id === e.id && l.main_stage === s).length
+      for (const s of activeStages) row[s.key] = filteredLeads.filter(l => l.owner_id === e.id && l.main_stage === s.key).length
       return row
     }).filter(r => Object.values(r).some(v => typeof v === 'number' && v > 0))
-  }, [filteredLeads, employees])
+  }, [filteredLeads, employees, activeStages])
 
   // ── 8. Avg days per stage ───────────────────────────────────────────────────
   const stageTimeData = useMemo(() => {
-    const stages: LeadStage[] = ['A', 'B', 'C', 'D']
-    return stages.map(s => {
-      const sl = filteredLeads.filter(l => l.main_stage === s && l.stage_entered_at)
-      if (!sl.length) return { stage: STAGE_LABELS[s], avgDays: 0 }
+    return stages.filter(s => s.sla_days).map(s => {
+      const sl = filteredLeads.filter(l => l.main_stage === s.key && l.stage_entered_at)
+      if (!sl.length) return { stage: s.label, avgDays: 0 }
       const avg = sl.reduce((sum, l) => sum + (Date.now() - new Date(l.stage_entered_at).getTime()), 0) / sl.length
-      return { stage: STAGE_LABELS[s], avgDays: Math.round(avg / (1000 * 60 * 60 * 24)) }
+      return { stage: s.label, avgDays: Math.round(avg / (1000 * 60 * 60 * 24)) }
     })
-  }, [filteredLeads])
+  }, [filteredLeads, stages])
 
   // ── 9. SLA compliance ──────────────────────────────────────────────────────
   const slaData = useMemo(() => {
@@ -322,7 +323,7 @@ export function AnalyticsClient({ leads, employees, activities, slaBreaches }: P
           </select>
           <select value={stageFilter} onChange={e => setStageFilter(e.target.value)} className="px-3 py-1.5 border border-brand-200 rounded-lg text-sm bg-white text-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-400">
             <option value="">All Stages</option>
-            {Object.entries(STAGE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            {stages.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
           </select>
           <select value={sourceFilter} onChange={e => setSourceFilter(e.target.value)} className="px-3 py-1.5 border border-brand-200 rounded-lg text-sm bg-white text-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-400">
             <option value="">All Sources</option>
@@ -550,9 +551,9 @@ export function AnalyticsClient({ leads, employees, activities, slaBreaches }: P
               <YAxis allowDecimals={false} tick={{ fontSize: 10 }} />
               <Tooltip />
               <Legend />
-              {(['0','A','B','C','D','F'] as LeadStage[]).map((s, i) => (
-                <Bar key={s} dataKey={s} name={STAGE_LABELS[s]} stackId="a" fill={TEAL[i % TEAL.length]}
-                  radius={i === 5 ? [4, 4, 0, 0] : [0, 0, 0, 0]} />
+              {activeStages.map((s, i) => (
+                <Bar key={s.key} dataKey={s.key} name={s.label} stackId="a" fill={TEAL[i % TEAL.length]}
+                  radius={i === activeStages.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]} />
               ))}
             </BarChart>
           </ResponsiveContainer>

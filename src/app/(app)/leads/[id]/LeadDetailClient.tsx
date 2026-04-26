@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Lead, Activity, Employee, WaTemplate, LeadStage, SUB_STAGES, STAGE_LABELS, STAGE_A_TO_B_REQUIRED, SLA_EXCLUDED_SOURCES } from '@/types'
+import { Lead, Activity, Employee, WaTemplate, LeadStage, SUB_STAGES, STAGE_A_TO_B_REQUIRED, SLA_EXCLUDED_SOURCES } from '@/types'
+import { useOrgConfig } from '@/context/OrgConfigContext'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 import { Input, Select, Textarea } from '@/components/ui/Input'
@@ -26,9 +27,8 @@ interface Props {
   slaConfig: Record<string, number>
 }
 
-const ALL_STAGES: LeadStage[] = ['0','A','B','C','D','E','F','G','X','Y']
-
 export function LeadDetailClient({ lead: initialLead, activities: initialActivities, templates, employee, orgEmployees, slaConfig }: Props) {
+  const { stages } = useOrgConfig()
   const router = useRouter()
   const [lead, setLead] = useState(initialLead)
   const [activities, setActivities] = useState(initialActivities)
@@ -237,7 +237,7 @@ export function LeadDetailClient({ lead: initialLead, activities: initialActivit
                     onChange={e => { setStageDraft(e.target.value as LeadStage); setSubStageDraft('') }}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
                   >
-                    {ALL_STAGES.map(s => <option key={s} value={s}>{STAGE_LABELS[s]}</option>)}
+                    {stages.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
                   </select>
                 </div>
                 {subStageOptions.length > 0 && (
