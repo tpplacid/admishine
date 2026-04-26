@@ -32,22 +32,23 @@ export default function OrgLoginClient({ orgName, orgSlug, logoUrl }: Props) {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand-50 to-teal-100 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-teal-50 px-4">
       <div className="w-full max-w-sm">
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          {/* Logo / org name */}
-          <div className="flex flex-col items-center mb-8">
-            {logoUrl ? (
-              <img src={logoUrl} alt={orgName} className="h-16 object-contain mb-3" />
-            ) : (
-              <div className="w-14 h-14 rounded-2xl bg-brand-800 flex items-center justify-center mb-3">
-                <span className="text-white font-bold text-2xl uppercase">{orgName.charAt(0)}</span>
-              </div>
-            )}
-            <h1 className="text-lg font-bold text-slate-900">{orgName}</h1>
-            <p className="text-slate-400 text-xs mt-0.5">Sign in to your workspace</p>
-          </div>
 
+        {/* Org brand — above the card, same as login page org-login mode */}
+        <div className="text-center mb-8">
+          {logoUrl ? (
+            <img src={logoUrl} alt={orgName} className="h-16 object-contain mx-auto mb-3" />
+          ) : (
+            <div className="w-16 h-16 rounded-2xl bg-brand-800 flex items-center justify-center mx-auto mb-3">
+              <span className="text-white font-bold text-3xl uppercase">{orgName.charAt(0)}</span>
+            </div>
+          )}
+          <h1 className="text-xl font-bold text-slate-900">{orgName}</h1>
+          <p className="text-slate-400 text-sm mt-0.5">Sign in to your workspace</p>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-xl p-8">
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
@@ -56,9 +57,9 @@ export default function OrgLoginClient({ orgName, orgSlug, logoUrl }: Props) {
                 required
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent"
-                placeholder={`you@${orgSlug}.com`}
                 autoFocus
+                className="w-full px-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent"
+                placeholder="you@example.com"
               />
             </div>
             <div>
@@ -75,19 +76,20 @@ export default function OrgLoginClient({ orgName, orgSlug, logoUrl }: Props) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 bg-brand-800 hover:bg-brand-900 text-white rounded-lg text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-2.5 bg-brand-800 hover:bg-brand-900 text-white rounded-lg text-sm font-bold transition disabled:opacity-60"
             >
               {loading ? 'Signing in…' : 'Sign In'}
             </button>
           </form>
-
-          <p className="text-xs text-slate-400 text-center mt-6">
-            Forgot password? Contact your admin.
-          </p>
+          <div className="mt-4 text-center">
+            <a href="/login" className="text-xs text-slate-400 hover:text-slate-600 transition">
+              ← Switch workspace
+            </a>
+          </div>
         </div>
 
         <p className="text-center text-xs text-slate-400 mt-4">
-          Powered by <span className="font-semibold text-slate-500">Consultrack</span>
+          Forgot your workspace URL? Contact your admin.
         </p>
       </div>
     </div>
