@@ -232,7 +232,7 @@ export function LeadDetailClient({ lead: initialLead, activities: initialActivit
                     onChange={e => { setStageDraft(e.target.value as LeadStage); setSubStageDraft('') }}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
                   >
-                    {ALL_STAGES.map(s => <option key={s} value={s}>{s} — {STAGE_LABELS[s]}</option>)}
+                    {ALL_STAGES.map(s => <option key={s} value={s}>{STAGE_LABELS[s]}</option>)}
                   </select>
                 </div>
                 {subStageOptions.length > 0 && (

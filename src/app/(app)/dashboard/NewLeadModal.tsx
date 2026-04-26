@@ -1,13 +1,15 @@
 'use client'
 
 import { useState } from 'react'
-import { Employee } from '@/types'
+import { Employee, Lead } from '@/types'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { Input, Select } from '@/components/ui/Input'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
+import { AlertTriangle } from 'lucide-react'
+import Link from 'next/link'
 
 interface Props {
   open: boolean
@@ -18,6 +20,7 @@ interface Props {
 export function NewLeadModal({ open, onClose, employee }: Props) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [duplicate, setDuplicate] = useState<Lead | null>(null)
   const [form, setForm] = useState({
     name: '',
     phone: '',
@@ -30,6 +33,28 @@ export function NewLeadModal({ open, onClose, employee }: Props) {
 
   function update(key: string, value: string) {
     setForm(prev => ({ ...prev, [key]: value }))
+    if (key === 'phone') setDuplicate(null)
+  }
+
+  async function checkDuplicate(phone: string): Promise<Lead | null> {
+    if (!phone) return null
+    const supabase = createClient()
+    const { data: emp } = await supabase.from('employees').select('org_id').eq('id', employee.id).single()
+    if (!emp) return null
+    const { data } = await supabase
+      .from('leads')
+      .select('id, name, phone, main_stage, owner_id, owner:employees!leads_owner_id_fkey(id,name)')
+      .eq('org_id', emp.org_id)
+      .eq('phone', phone.trim())
+      .limit(1)
+      .single()
+    return data as Lead | null
+  }
+
+  async function handlePhoneBlur() {
+    if (!form.phone.trim()) return
+    const dup = await checkDuplicate(form.phone.trim())
+    setDuplicate(dup)
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -58,7 +83,7 @@ export function NewLeadModal({ open, onClose, employee }: Props) {
     const { data: lead, error } = await supabase.from('leads').insert({
       org_id: emp.org_id,
       name: form.name,
-      phone: form.phone,
+      phone: form.phone.trim(),
       source: form.source,
       main_stage: '0',
       owner_id: employee.id,
@@ -100,12 +125,46 @@ export function NewLeadModal({ open, onClose, employee }: Props) {
     setLoading(false)
   }
 
+  function handleClose() {
+    setForm({ name: '', phone: '', source: 'offline', location: '', lead_type: '', preferred_course: '', comments: '' })
+    setDuplicate(null)
+    onClose()
+  }
+
   return (
-    <Modal open={open} onClose={onClose} title="New Lead" size="md">
+    <Modal open={open} onClose={handleClose} title="New Lead" size="md">
       <form onSubmit={handleSubmit} className="p-5 space-y-4">
         <Input label="Full Name" required value={form.name} onChange={e => update('name', e.target.value)} placeholder="Student name" />
-        <Input label="Phone" required value={form.phone} onChange={e => update('phone', e.target.value)} placeholder="+91 9XXXXXXXXX" />
-        <Select label="Source" value={form.source} onChange={e => update('source', e.target.value)}>
+
+        <div className="space-y-1">
+          <Input
+            label="Phone"
+            required
+            value={form.phone}
+            onChange={e => update('phone', e.target.value)}
+            onBlur={handlePhoneBlur}
+            placeholder="+91 9XXXXXXXXX"
+          />
+          {duplicate && (
+            <div className="flex items-start gap-2 bg-amber-50 border border-amber-300 rounded-lg px-3 py-2 mt-1">
+              <AlertTriangle size={14} className="text-amber-600 flex-shrink-0 mt-0.5" />
+              <div className="text-xs text-amber-800">
+                <p className="font-semibold">Duplicate phone number</p>
+                <p>
+                  This number is already linked to{' '}
+                  <Link href={`/leads/${duplicate.id}`} className="underline font-semibold" onClick={handleClose}>
+                    {duplicate.name}
+                  </Link>
+                  {' '}(Stage {duplicate.main_stage}
+                  {(duplicate.owner as Employee)?.name ? ` · ${(duplicate.owner as Employee).name}` : ''}).
+                  You can still save if this is intentional.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <Select label="Source" value={form.source} onChange={e => update('source', e.target.value as 'offline' | 'referral')}>
           <option value="offline">Offline</option>
           <option value="referral">Referral</option>
         </Select>
@@ -126,8 +185,10 @@ export function NewLeadModal({ open, onClose, employee }: Props) {
           Offline/Referral leads require approval from your manager before they become active.
         </p>
         <div className="flex gap-2 pt-2">
-          <Button variant="outline" type="button" onClick={onClose} className="flex-1">Cancel</Button>
-          <Button type="submit" loading={loading} className="flex-1">Create Lead</Button>
+          <Button variant="outline" type="button" onClick={handleClose} className="flex-1">Cancel</Button>
+          <Button type="submit" loading={loading} className="flex-1">
+            {duplicate ? 'Save Anyway' : 'Create Lead'}
+          </Button>
         </div>
       </form>
     </Modal>

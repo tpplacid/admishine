@@ -54,7 +54,7 @@ export function AnalyticsClient({ leads, employees, activities, slaBreaches }: P
   const funnelData = useMemo(() => {
     const stages: LeadStage[] = ['0', 'A', 'B', 'C', 'D', 'F']
     return stages.map(s => ({
-      name: `${s} — ${STAGE_LABELS[s]}`,
+      name: STAGE_LABELS[s],
       value: filteredLeads.filter(l => l.main_stage === s).length,
     }))
   }, [filteredLeads])
@@ -162,9 +162,9 @@ export function AnalyticsClient({ leads, employees, activities, slaBreaches }: P
     const stages: LeadStage[] = ['A', 'B', 'C', 'D']
     return stages.map(s => {
       const sl = filteredLeads.filter(l => l.main_stage === s && l.stage_entered_at)
-      if (!sl.length) return { stage: `${s} — ${STAGE_LABELS[s]}`, avgDays: 0 }
+      if (!sl.length) return { stage: STAGE_LABELS[s], avgDays: 0 }
       const avg = sl.reduce((sum, l) => sum + (Date.now() - new Date(l.stage_entered_at).getTime()), 0) / sl.length
-      return { stage: `${s} — ${STAGE_LABELS[s]}`, avgDays: Math.round(avg / (1000 * 60 * 60 * 24)) }
+      return { stage: STAGE_LABELS[s], avgDays: Math.round(avg / (1000 * 60 * 60 * 24)) }
     })
   }, [filteredLeads])
 
@@ -322,7 +322,7 @@ export function AnalyticsClient({ leads, employees, activities, slaBreaches }: P
           </select>
           <select value={stageFilter} onChange={e => setStageFilter(e.target.value)} className="px-3 py-1.5 border border-brand-200 rounded-lg text-sm bg-white text-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-400">
             <option value="">All Stages</option>
-            {Object.entries(STAGE_LABELS).map(([k, v]) => <option key={k} value={k}>{k} — {v}</option>)}
+            {Object.entries(STAGE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
           <select value={sourceFilter} onChange={e => setSourceFilter(e.target.value)} className="px-3 py-1.5 border border-brand-200 rounded-lg text-sm bg-white text-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-400">
             <option value="">All Sources</option>
@@ -551,7 +551,7 @@ export function AnalyticsClient({ leads, employees, activities, slaBreaches }: P
               <Tooltip />
               <Legend />
               {(['0','A','B','C','D','F'] as LeadStage[]).map((s, i) => (
-                <Bar key={s} dataKey={s} name={`${s} — ${STAGE_LABELS[s]}`} stackId="a" fill={TEAL[i % TEAL.length]}
+                <Bar key={s} dataKey={s} name={STAGE_LABELS[s]} stackId="a" fill={TEAL[i % TEAL.length]}
                   radius={i === 5 ? [4, 4, 0, 0] : [0, 0, 0, 0]} />
               ))}
             </BarChart>

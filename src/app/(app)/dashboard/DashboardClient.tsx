@@ -11,7 +11,7 @@ import { NotificationBanner } from '@/components/NotificationBanner'
 
 const STAGES = [
   { value: '', label: 'All Stages' },
-  ...Object.entries(STAGE_LABELS).map(([k, v]) => ({ value: k, label: `${k} — ${v}` })),
+  ...Object.entries(STAGE_LABELS).map(([k, v]) => ({ value: k, label: v })),
 ]
 
 interface Props {
