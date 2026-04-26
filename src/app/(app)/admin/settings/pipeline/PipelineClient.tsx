@@ -189,23 +189,30 @@ export function PipelineClient({ orgId, initialStages, initialFlows }: Props) {
                 expanded === stage.id ? 'border-brand-300 shadow-sm' : 'border-brand-100'}`}
             >
               {/* Stage row */}
-              <div className="flex items-center gap-3 px-4 py-3">
-                <GripVertical size={16} className="text-brand-300 cursor-grab flex-shrink-0" />
-
-                {/* Color preview */}
-                <span className={`inline-flex px-2 py-0.5 rounded text-xs font-semibold ${stage.color_bg} ${stage.color_text}`}>
-                  {stage.key}
-                </span>
-
-                {/* Label */}
-                <input
-                  value={stage.label}
-                  onChange={e => updateStage(stage.id!, { label: e.target.value })}
-                  className="flex-1 text-sm font-semibold text-brand-800 bg-transparent border-0 outline-none focus:ring-0 min-w-0"
-                />
-
-                {/* SLA */}
-                <div className="flex items-center gap-1 flex-shrink-0">
+              <div className="px-4 py-3 space-y-2">
+                {/* Row 1: grip + key badge + label + actions */}
+                <div className="flex items-center gap-2">
+                  <GripVertical size={16} className="text-brand-300 cursor-grab flex-shrink-0" />
+                  <span className={`inline-flex px-2 py-0.5 rounded text-xs font-semibold flex-shrink-0 ${stage.color_bg} ${stage.color_text}`}>
+                    {stage.key}
+                  </span>
+                  <input
+                    value={stage.label}
+                    onChange={e => updateStage(stage.id!, { label: e.target.value })}
+                    className="flex-1 text-sm font-semibold text-brand-800 bg-transparent border-0 outline-none focus:ring-0 min-w-0"
+                  />
+                  <button onClick={() => saveStage(stage)} className="text-brand-400 hover:text-brand-700 transition-colors flex-shrink-0" title="Save">
+                    {saving === stage.id ? <div className="w-4 h-4 border-2 border-brand-400 border-t-transparent rounded-full animate-spin" /> : <Check size={15} />}
+                  </button>
+                  <button onClick={() => setExpanded(expanded === stage.id ? null : stage.id!)} className="text-brand-400 hover:text-brand-700 transition-colors flex-shrink-0">
+                    {expanded === stage.id ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+                  </button>
+                  <button onClick={() => deleteStage(stage)} className="text-brand-300 hover:text-red-500 transition-colors flex-shrink-0">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+                {/* Row 2: deadline + won/lost */}
+                <div className="flex items-center gap-2 pl-6">
                   <span className="text-xs text-brand-400">Deadline</span>
                   <input
                     type="number"
@@ -215,36 +222,17 @@ export function PipelineClient({ orgId, initialStages, initialFlows }: Props) {
                     className="w-12 text-xs text-center border border-brand-200 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-brand-400"
                   />
                   <span className="text-xs text-brand-400">d</span>
+                  <button
+                    onClick={() => updateStage(stage.id!, { is_won: !stage.is_won, is_lost: false })}
+                    className={`text-xs px-2 py-0.5 rounded font-semibold border transition-colors ${stage.is_won ? 'bg-green-100 text-green-700 border-green-300' : 'bg-white text-brand-400 border-brand-200'}`}>
+                    Won
+                  </button>
+                  <button
+                    onClick={() => updateStage(stage.id!, { is_lost: !stage.is_lost, is_won: false })}
+                    className={`text-xs px-2 py-0.5 rounded font-semibold border transition-colors ${stage.is_lost ? 'bg-red-100 text-red-700 border-red-300' : 'bg-white text-brand-400 border-brand-200'}`}>
+                    Lost
+                  </button>
                 </div>
-
-                {/* Won/Lost toggles */}
-                <button
-                  onClick={() => updateStage(stage.id!, { is_won: !stage.is_won, is_lost: false })}
-                  className={`text-xs px-2 py-0.5 rounded font-semibold border transition-colors ${
-                    stage.is_won ? 'bg-green-100 text-green-700 border-green-300' : 'bg-white text-brand-400 border-brand-200'}`}>
-                  Won
-                </button>
-                <button
-                  onClick={() => updateStage(stage.id!, { is_lost: !stage.is_lost, is_won: false })}
-                  className={`text-xs px-2 py-0.5 rounded font-semibold border transition-colors ${
-                    stage.is_lost ? 'bg-red-100 text-red-700 border-red-300' : 'bg-white text-brand-400 border-brand-200'}`}>
-                  Lost
-                </button>
-
-                {/* Save + expand + delete */}
-                <button onClick={() => saveStage(stage)}
-                  className="text-brand-400 hover:text-brand-700 transition-colors flex-shrink-0"
-                  title="Save">
-                  {saving === stage.id ? <div className="w-4 h-4 border-2 border-brand-400 border-t-transparent rounded-full animate-spin" /> : <Check size={15} />}
-                </button>
-                <button onClick={() => setExpanded(expanded === stage.id ? null : stage.id!)}
-                  className="text-brand-400 hover:text-brand-700 transition-colors flex-shrink-0">
-                  {expanded === stage.id ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
-                </button>
-                <button onClick={() => deleteStage(stage)}
-                  className="text-brand-300 hover:text-red-500 transition-colors flex-shrink-0">
-                  <Trash2 size={14} />
-                </button>
               </div>
 
               {/* Expanded: color + substages */}

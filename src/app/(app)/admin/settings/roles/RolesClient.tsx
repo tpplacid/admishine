@@ -110,35 +110,39 @@ export function RolesClient({ orgId, initialRoles }: Props) {
             onDrop={() => handleDrop(idx)}
             className={`bg-white border rounded-xl transition-all ${dragIdx === idx ? 'opacity-40' : 'opacity-100'} border-brand-100`}
           >
-            <div className="flex flex-wrap items-center gap-3 px-4 py-3">
-              <GripVertical size={16} className="text-brand-300 cursor-grab flex-shrink-0" />
-
-              {/* Label */}
-              <input
-                value={role.label}
-                onChange={e => updateRole(role.id!, { label: e.target.value })}
-                className="w-32 text-sm font-semibold text-brand-800 bg-transparent border-0 outline-none focus:ring-0 min-w-0"
-                placeholder="Role name"
-              />
-
-              {/* Key (read-only) */}
-              <span className="text-xs text-brand-300 font-mono bg-brand-50 px-2 py-0.5 rounded">{role.key}</span>
-
-              {/* Level */}
-              <div className="flex items-center gap-1">
-                <span className="text-xs text-brand-400">Level</span>
+            <div className="px-4 py-3 space-y-2">
+              {/* Row 1: grip + label + key + level + actions */}
+              <div className="flex items-center gap-2">
+                <GripVertical size={16} className="text-brand-300 cursor-grab flex-shrink-0" />
                 <input
-                  type="number"
-                  min={1}
-                  max={10}
-                  value={role.level}
-                  onChange={e => updateRole(role.id!, { level: parseInt(e.target.value) || 1 })}
-                  className="w-12 text-xs text-center border border-brand-200 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-brand-400"
+                  value={role.label}
+                  onChange={e => updateRole(role.id!, { label: e.target.value })}
+                  className="flex-1 text-sm font-semibold text-brand-800 bg-transparent border-0 outline-none focus:ring-0 min-w-0"
+                  placeholder="Role name"
                 />
+                <span className="text-xs text-brand-300 font-mono bg-brand-50 px-2 py-0.5 rounded flex-shrink-0">{role.key}</span>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <span className="text-xs text-brand-400">L</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={10}
+                    value={role.level}
+                    onChange={e => updateRole(role.id!, { level: parseInt(e.target.value) || 1 })}
+                    className="w-10 text-xs text-center border border-brand-200 rounded px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-brand-400"
+                  />
+                </div>
+                <button onClick={() => saveRole(role)} className="text-brand-400 hover:text-brand-700 transition-colors flex-shrink-0" title="Save">
+                  {saving === role.id
+                    ? <div className="w-4 h-4 border-2 border-brand-400 border-t-transparent rounded-full animate-spin" />
+                    : <Check size={15} />}
+                </button>
+                <button onClick={() => deleteRole(role)} className="text-brand-300 hover:text-red-500 transition-colors flex-shrink-0">
+                  <Trash2 size={14} />
+                </button>
               </div>
-
-              {/* Permissions */}
-              <div className="flex flex-wrap gap-2 flex-1">
+              {/* Row 2: permission toggles */}
+              <div className="flex flex-wrap gap-1.5 pl-6">
                 {PERMISSION_FIELDS.map(({ key, label }) => (
                   <button
                     key={key}
@@ -151,21 +155,6 @@ export function RolesClient({ orgId, initialRoles }: Props) {
                     {label}
                   </button>
                 ))}
-              </div>
-
-              {/* Save + delete */}
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <button onClick={() => saveRole(role)}
-                  className="text-brand-400 hover:text-brand-700 transition-colors"
-                  title="Save">
-                  {saving === role.id
-                    ? <div className="w-4 h-4 border-2 border-brand-400 border-t-transparent rounded-full animate-spin" />
-                    : <Check size={15} />}
-                </button>
-                <button onClick={() => deleteRole(role)}
-                  className="text-brand-300 hover:text-red-500 transition-colors">
-                  <Trash2 size={14} />
-                </button>
               </div>
             </div>
           </div>
