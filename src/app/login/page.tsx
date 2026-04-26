@@ -21,19 +21,20 @@ export default function LoginPage() {
     const s = slug.trim().toLowerCase()
     if (!s) return
     setLoading(true)
-    try {
-      const res = await fetch(`/api/org/${s}`)
-      if (!res.ok) {
-        toast.error('Workspace not found. Check the URL and try again.')
-        setLoading(false)
-        return
-      }
-      const { org } = await res.json()
-      setOrg(org)
-      setMode('org-login')
-    } catch {
-      toast.error('Something went wrong. Try again.')
+    const res = await fetch(`/api/org/${s}`)
+    if (res.status === 404) {
+      toast.error(`No workspace found for "${s}". Check the URL and try again.`)
+      setLoading(false)
+      return
     }
+    if (!res.ok) {
+      toast.error('Something went wrong. Try again in a moment.')
+      setLoading(false)
+      return
+    }
+    const { org } = await res.json()
+    setOrg(org)
+    setMode('org-login')
     setLoading(false)
   }
 
