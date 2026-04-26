@@ -2,7 +2,7 @@ import { requireRole } from '@/lib/auth'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { OfflineApprovalsClient } from './OfflineApprovalsClient'
 
-export const revalidate = 30
+export const dynamic = 'force-dynamic'
 
 export default async function OfflineApprovalsPage() {
   const employee = await requireRole(['ad'])

@@ -41,6 +41,20 @@ export function NewLeadModal({ open, onClose, employee }: Props) {
     const { data: emp } = await supabase.from('employees').select('org_id, reports_to').eq('id', employee.id).single()
     if (!emp) { setLoading(false); return toast.error('Employee not found') }
 
+    // Resolve approver — use direct manager or fall back to the org's AD
+    let approverId = emp.reports_to
+    if (!approverId) {
+      const { data: ad } = await supabase
+        .from('employees')
+        .select('id')
+        .eq('org_id', emp.org_id)
+        .eq('role', 'ad')
+        .eq('is_active', true)
+        .limit(1)
+        .single()
+      approverId = ad?.id || null
+    }
+
     const { data: lead, error } = await supabase.from('leads').insert({
       org_id: emp.org_id,
       name: form.name,
@@ -70,13 +84,14 @@ export function NewLeadModal({ open, onClose, employee }: Props) {
       note: `Lead created via ${form.source}`,
     })
 
-    if (emp.reports_to) {
-      await supabase.from('offline_lead_approvals').insert({
+    if (approverId) {
+      const { error: approvalError } = await supabase.from('offline_lead_approvals').insert({
         org_id: emp.org_id,
         lead_id: lead.id,
         submitted_by: employee.id,
-        approver_id: emp.reports_to,
+        approver_id: approverId,
       })
+      if (approvalError) console.error('Approval insert failed:', approvalError.message)
     }
 
     toast.success('Lead created!')
