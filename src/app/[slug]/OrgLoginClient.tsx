@@ -32,7 +32,7 @@ export default function OrgLoginClient({ orgName, orgSlug, logoUrl }: Props) {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-teal-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-white px-4">
       <div className="w-full max-w-sm">
 
         {/* Org brand — above the card, same as login page org-login mode */}
