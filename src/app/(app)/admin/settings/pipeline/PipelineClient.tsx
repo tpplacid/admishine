@@ -1,12 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 import toast from 'react-hot-toast'
 import {
   Plus, Trash2, GripVertical, ChevronDown, ChevronUp,
-  Check, X, GitBranch, MousePointer2,
+  Check, X, GitBranch, MousePointer2, ChevronRight, ChevronLeft,
+  ArrowRight, Zap,
 } from 'lucide-react'
 
 interface Substage { id?: string; label: string; position: number }
@@ -38,87 +39,66 @@ const COLOR_PRESETS = [
   { bg: 'bg-teal-50',    text: 'text-teal-600',    preview: '#f0fdfa', hex: '#0d9488', label: 'Teal'   },
 ]
 
-const TEXT_TO_HEX: Record<string, string> = Object.fromEntries(
-  COLOR_PRESETS.map(c => [c.text, c.hex])
-)
+const TEXT_TO_HEX: Record<string, string> = Object.fromEntries(COLOR_PRESETS.map(c => [c.text, c.hex]))
 
 type Tab = 'stages' | 'flow'
 
-function toDaysHours(val: number | null): { d: number; h: number } {
+function toDaysHours(val: number | null) {
   if (val == null) return { d: 0, h: 0 }
-  const d = Math.floor(val)
-  const h = Math.round((val - d) * 24)
-  return { d, h }
+  return { d: Math.floor(val), h: Math.round((val - Math.floor(val)) * 24) }
 }
-
 function toDecimalDays(d: number, h: number): number | null {
-  if (d === 0 && h === 0) return null
-  return d + h / 24
+  return d === 0 && h === 0 ? null : d + h / 24
 }
 
-// ── Canvas layout constants ─────────────────────────────────────────────────
-const NW = 148   // node width
-const NH = 64    // node height
-const HG = 52    // horizontal gap between nodes
-const VG = 88    // vertical gap between rows
-const PAD = 28   // canvas padding
-const COLS = 4   // main stages per row
+// ── Canvas layout ──────────────────────────────────────────────────────────
+const NW = 152, NH = 68, HG = 56, VG = 92, PAD = 36, COLS = 4
 
-function getPositions(mainStages: Stage[], terminalStages: Stage[]) {
+function getPositions(main: Stage[], term: Stage[]) {
   const pos: Record<string, { x: number; y: number }> = {}
-  mainStages.forEach((s, i) => {
-    pos[s.key] = {
-      x: PAD + (i % COLS) * (NW + HG),
-      y: PAD + Math.floor(i / COLS) * (NH + VG),
-    }
+  main.forEach((s, i) => {
+    pos[s.key] = { x: PAD + (i % COLS) * (NW + HG), y: PAD + 24 + Math.floor(i / COLS) * (NH + VG) }
   })
-  const mainRows = Math.ceil(mainStages.length / COLS)
-  const termY = PAD + mainRows * (NH + VG) + 32
-  terminalStages.forEach((s, i) => {
-    pos[s.key] = { x: PAD + i * (NW + HG), y: termY }
-  })
+  const rows = Math.ceil(main.length / COLS)
+  const termY = PAD + 24 + rows * (NH + VG) + 40
+  term.forEach((s, i) => { pos[s.key] = { x: PAD + i * (NW + HG), y: termY + 20 } })
   return pos
 }
 
 function buildArrows(flows: Flow[], pos: Record<string, { x: number; y: number }>) {
   return flows.map(f => {
-    const fp = pos[f.from_stage]
-    const tp = pos[f.to_stage]
+    const fp = pos[f.from_stage], tp = pos[f.to_stage]
     if (!fp || !tp) return null
-    const fromRowY = fp.y
-    const toRowY = tp.y
-
+    const sameRow = Math.abs(fp.y - tp.y) < 4
     let d: string
-    if (Math.abs(fromRowY - toRowY) < 4) {
-      // Same row — right edge → left edge horizontal bezier
+    if (sameRow) {
       const x1 = fp.x + NW, y1 = fp.y + NH / 2
       const x2 = tp.x,      y2 = tp.y + NH / 2
-      const cx = (x2 - x1) * 0.45
       if (x2 > x1) {
-        d = `M${x1},${y1} C${x1 + cx},${y1} ${x2 - cx},${y2} ${x2},${y2}`
+        const cx = (x2 - x1) * 0.4
+        d = `M${x1},${y1} C${x1+cx},${y1} ${x2-cx},${y2} ${x2},${y2}`
       } else {
-        // Backwards on same row — arc above
-        const mid = (fp.x + tp.x + NW) / 2
-        const above = fromRowY - 36
-        d = `M${x1},${y1} C${x1 + 32},${y1} ${mid},${above} ${mid},${above}
-             C${mid},${above} ${x2 - 32},${y2} ${x2},${y2}`
+        // Backwards on same row — arc over top
+        const peak = Math.min(fp.y, tp.y) - 48
+        const mx = (fp.x + tp.x + NW) / 2
+        d = `M${x1},${y1} C${x1+32},${y1} ${mx+40},${peak} ${mx},${peak} C${mx-40},${peak} ${tp.x+NW+32},${y2} ${x2},${y2}`
       }
-    } else if (toRowY > fromRowY) {
-      // Going down — exit bottom center, enter top center
+    } else if (tp.y > fp.y) {
+      // Down
       const x1 = fp.x + NW / 2, y1 = fp.y + NH
       const x2 = tp.x + NW / 2, y2 = tp.y
-      d = `M${x1},${y1} C${x1},${y1 + 36} ${x2},${y2 - 36} ${x2},${y2}`
+      d = `M${x1},${y1} C${x1},${y1+38} ${x2},${y2-38} ${x2},${y2}`
     } else {
-      // Going up — exit top center, enter bottom center
+      // Up
       const x1 = fp.x + NW / 2, y1 = fp.y
       const x2 = tp.x + NW / 2, y2 = tp.y + NH
-      d = `M${x1},${y1} C${x1},${y1 - 36} ${x2},${y2 + 36} ${x2},${y2}`
+      d = `M${x1},${y1} C${x1},${y1-38} ${x2},${y2+38} ${x2},${y2}`
     }
     return { key: `${f.from_stage}-${f.to_stage}`, d }
   }).filter(Boolean) as { key: string; d: string }[]
 }
 
-// ── Main component ──────────────────────────────────────────────────────────
+// ────────────────────────────────────────────────────────────────────────────
 
 export function PipelineClient({ orgId, initialStages, initialFlows }: Props) {
   const [tab, setTab] = useState<Tab>('stages')
@@ -127,12 +107,15 @@ export function PipelineClient({ orgId, initialStages, initialFlows }: Props) {
   const [expanded, setExpanded] = useState<string | null>(null)
   const [saving, setSaving] = useState<string | null>(null)
   const [dragIdx, setDragIdx] = useState<number | null>(null)
+
+  // Flow map state
   const [selectedKey, setSelectedKey] = useState<string | null>(null)
+  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [connectingFrom, setConnectingFrom] = useState<string | null>(null) // "draw arrow" source
 
   const supabase = createClient()
 
   // ── Stage CRUD ─────────────────────────────────────────────────────────────
-
   async function addStage() {
     const key = `S${Date.now().toString(36).slice(-4).toUpperCase()}`
     const { data, error } = await supabase.from('org_stages').insert({
@@ -171,8 +154,6 @@ export function PipelineClient({ orgId, initialStages, initialFlows }: Props) {
     setStages(prev => prev.map(s => s.id === id ? { ...s, ...patch } : s))
   }
 
-  // ── Substage CRUD ──────────────────────────────────────────────────────────
-
   async function addSubstage(stage: Stage) {
     const { data, error } = await supabase.from('org_stage_substages').insert({
       org_id: orgId, stage_key: stage.key, label: 'New sub-stage', position: stage.substages.length,
@@ -193,8 +174,6 @@ export function PipelineClient({ orgId, initialStages, initialFlows }: Props) {
       ? { ...s, substages: s.substages.filter(ss => ss.id !== subId) } : s))
   }
 
-  // ── Drag to reorder ────────────────────────────────────────────────────────
-
   async function handleDrop(targetIdx: number) {
     if (dragIdx === null || dragIdx === targetIdx) return
     const reordered = [...stages]
@@ -209,7 +188,6 @@ export function PipelineClient({ orgId, initialStages, initialFlows }: Props) {
   }
 
   // ── Flow toggle ────────────────────────────────────────────────────────────
-
   async function toggleFlow(from: string, to: string) {
     if (from === to) return
     const exists = flows.some(f => f.from_stage === from && f.to_stage === to)
@@ -222,30 +200,53 @@ export function PipelineClient({ orgId, initialStages, initialFlows }: Props) {
     }
   }
 
+  // ── Canvas node click ──────────────────────────────────────────────────────
+  function handleNodeClick(key: string) {
+    if (connectingFrom === null) {
+      // No source selected: select this node (show panel + mark as potential source)
+      setSelectedKey(key)
+      setConnectingFrom(key)
+    } else if (connectingFrom === key) {
+      // Clicked same node: deselect
+      setConnectingFrom(null)
+    } else {
+      // Clicked different node: toggle connection FROM connectingFrom TO key
+      toggleFlow(connectingFrom, key)
+      // Keep source selected so user can make multiple connections
+    }
+  }
+
+  function handleCanvasClick() {
+    setConnectingFrom(null)
+    setSelectedKey(null)
+  }
+
   const sorted = [...stages].sort((a, b) => a.position - b.position)
   const mainStages = sorted.filter(s => !s.is_won && !s.is_lost)
   const terminalStages = sorted.filter(s => s.is_won || s.is_lost)
   const selectedStage = sorted.find(s => s.key === selectedKey) ?? null
 
-  // Canvas geometry (computed once per render)
   const positions = getPositions(mainStages, terminalStages)
   const arrows = buildArrows(flows, positions)
-  const maxMainCols = Math.min(mainStages.length, COLS)
-  const maxTermCols = terminalStages.length
-  const canvasW = PAD * 2 + Math.max(maxMainCols, maxTermCols) * (NW + HG) - HG
+
+  const maxCols = Math.max(Math.min(mainStages.length, COLS), terminalStages.length)
+  const canvasW = PAD * 2 + maxCols * (NW + HG) - HG
   const mainRows = Math.ceil(mainStages.length / COLS)
-  const termY = PAD + mainRows * (NH + VG) + 32
-  const canvasH = (terminalStages.length > 0 ? termY + NH : PAD + mainRows * (NH + VG) - VG + NH) + PAD
+  const termBaseY = PAD + 24 + mainRows * (NH + VG) + 40
+  const canvasH = terminalStages.length > 0
+    ? termBaseY + 20 + NH + PAD
+    : PAD + 24 + mainRows * (NH + VG) - VG + NH + PAD
 
   // ── Render ─────────────────────────────────────────────────────────────────
-
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-brand-800">Pipeline Configuration</h1>
-          <p className="text-[8px] text-brand-400 font-semibold mt-0.5">Define your lead stages, sub-stages, deadlines, and flow connections</p>
+          <p className="text-[8px] text-brand-400 font-semibold mt-0.5">
+            Define your lead stages, sub-stages, deadlines, and flow connections
+          </p>
         </div>
         {tab === 'stages' && <Button size="sm" onClick={addStage}><Plus size={14} />Add Stage</Button>}
       </div>
@@ -272,7 +273,6 @@ export function PipelineClient({ orgId, initialStages, initialFlows }: Props) {
                 onDrop={() => handleDrop(idx)}
                 className={`bg-white border rounded-xl transition-all ${dragIdx === idx ? 'opacity-40' : ''} ${
                   expanded === stage.id ? 'border-brand-300 shadow-sm' : 'border-brand-100'}`}>
-
                 <div className="px-4 py-3 space-y-2">
                   <div className="flex items-center gap-2">
                     <GripVertical size={16} className="text-brand-300 cursor-grab flex-shrink-0" />
@@ -282,7 +282,9 @@ export function PipelineClient({ orgId, initialStages, initialFlows }: Props) {
                     <input value={stage.label} onChange={e => updateStage(stage.id!, { label: e.target.value })}
                       className="flex-1 text-sm font-semibold text-brand-800 bg-transparent border-0 outline-none focus:ring-0 min-w-0" />
                     <button onClick={() => saveStage(stage)} className="text-brand-400 hover:text-brand-700 transition-colors flex-shrink-0" title="Save">
-                      {saving === stage.id ? <div className="w-4 h-4 border-2 border-brand-400 border-t-transparent rounded-full animate-spin" /> : <Check size={15} />}
+                      {saving === stage.id
+                        ? <div className="w-4 h-4 border-2 border-brand-400 border-t-transparent rounded-full animate-spin" />
+                        : <Check size={15} />}
                     </button>
                     <button onClick={() => setExpanded(expanded === stage.id ? null : stage.id!)} className="text-brand-400 hover:text-brand-700 transition-colors flex-shrink-0">
                       {expanded === stage.id ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
@@ -316,7 +318,6 @@ export function PipelineClient({ orgId, initialStages, initialFlows }: Props) {
                     </button>
                   </div>
                 </div>
-
                 {expanded === stage.id && (
                   <div className="border-t border-brand-50 px-4 py-4 space-y-4">
                     <div>
@@ -354,7 +355,7 @@ export function PipelineClient({ orgId, initialStages, initialFlows }: Props) {
                 )}
               </div>
             ))}
-            {stages.length === 0 && <p className="text-sm text-brand-400 text-center py-8">No stages yet. Add your first stage.</p>}
+            {stages.length === 0 && <p className="text-sm text-brand-400 text-center py-8">No stages yet.</p>}
           </div>
         </div>
       )}
@@ -365,226 +366,280 @@ export function PipelineClient({ orgId, initialStages, initialFlows }: Props) {
 
           {/* ── Canvas ── */}
           <div
-            className="flex-1 overflow-auto relative"
+            className="flex-1 overflow-auto relative select-none"
             style={{
               background: '#f4f6f8',
               backgroundImage: 'radial-gradient(circle, #cbd5e1 1.2px, transparent 1.2px)',
               backgroundSize: '22px 22px',
             }}
-            onClick={e => { if (e.target === e.currentTarget) setSelectedKey(null) }}
+            onClick={handleCanvasClick}
           >
+            {/* Connect-mode floating banner */}
+            {connectingFrom && (
+              <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
+                <div className="bg-slate-800/95 backdrop-blur-sm text-white text-xs font-medium px-4 py-2 rounded-full shadow-xl flex items-center gap-2.5">
+                  <div className="w-2 h-2 bg-teal-400 rounded-full animate-pulse flex-shrink-0" />
+                  <span>
+                    <span className="font-bold text-teal-300">
+                      {sorted.find(s => s.key === connectingFrom)?.label}
+                    </span>
+                    {' '}selected — click another stage to connect · click this stage or canvas to cancel
+                  </span>
+                </div>
+              </div>
+            )}
+
             <div
               className="relative"
               style={{ width: canvasW, height: canvasH, minWidth: '100%', minHeight: '100%' }}
             >
-              {/* SVG layer — arrows */}
+              {/* SVG arrows */}
               <svg
                 style={{ position: 'absolute', inset: 0, overflow: 'visible', pointerEvents: 'none' }}
                 width={canvasW} height={canvasH}
               >
                 <defs>
-                  <marker id="ah" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
-                    <polygon points="0 0, 9 3.5, 0 7" fill="#94a3b8" />
+                  <marker id="ah-default" markerWidth="9" markerHeight="6" refX="8" refY="3" orient="auto">
+                    <polygon points="0 0, 9 3, 0 6" fill="#94a3b8" />
                   </marker>
-                  <marker id="ah-active" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
-                    <polygon points="0 0, 9 3.5, 0 7" fill="#3d9191" />
+                  <marker id="ah-teal" markerWidth="9" markerHeight="6" refX="8" refY="3" orient="auto">
+                    <polygon points="0 0, 9 3, 0 6" fill="#14b8a6" />
+                  </marker>
+                  <marker id="ah-dim" markerWidth="9" markerHeight="6" refX="8" refY="3" orient="auto">
+                    <polygon points="0 0, 9 3, 0 6" fill="#cbd5e1" />
                   </marker>
                 </defs>
                 {arrows.map(a => {
-                  const fromSelected = selectedKey && a.key.startsWith(selectedKey + '-')
-                  const toSelected = selectedKey && a.key.endsWith('-' + selectedKey)
-                  const highlight = fromSelected || toSelected
+                  const fromKey = a.key.split('-')[0]
+                  const toKey = a.key.split('-').slice(1).join('-')
+                  const isFromSelected = fromKey === connectingFrom
+                  const isToSelected = toKey === connectingFrom
+                  const hasSelection = !!connectingFrom
+                  const isConnected = hasSelection && (isFromSelected || isToSelected)
+                  const markerId = !hasSelection ? 'ah-default' : isConnected ? 'ah-teal' : 'ah-dim'
                   return (
                     <path
                       key={a.key}
                       d={a.d}
-                      stroke={highlight ? '#3d9191' : '#94a3b8'}
-                      strokeWidth={highlight ? 2 : 1.5}
+                      stroke={!hasSelection ? '#94a3b8' : isConnected ? '#14b8a6' : '#e2e8f0'}
+                      strokeWidth={isConnected ? 2.5 : !hasSelection ? 1.5 : 1}
                       fill="none"
-                      strokeDasharray={toSelected ? '5,3' : undefined}
-                      markerEnd={highlight ? 'url(#ah-active)' : 'url(#ah)'}
-                      style={{ transition: 'stroke 0.15s, stroke-width 0.15s' }}
+                      strokeDasharray={isToSelected ? '6,3' : undefined}
+                      markerEnd={`url(#${markerId})`}
+                      style={{ transition: 'stroke 0.15s, stroke-width 0.15s, opacity 0.15s' }}
                     />
                   )
                 })}
               </svg>
 
-              {/* Stage nodes */}
-              {sorted.map(s => {
-                const pos = positions[s.key]
-                if (!pos) return null
-                const isSelected = selectedKey === s.key
-                const accentColor = TEXT_TO_HEX[s.color_text] ?? '#475569'
-                const outgoing = flows.filter(f => f.from_stage === s.key).length
-                const incoming = flows.filter(f => f.to_stage === s.key).length
-
-                return (
-                  <div
-                    key={s.key}
-                    onClick={e => { e.stopPropagation(); setSelectedKey(isSelected ? null : s.key) }}
-                    style={{
-                      position: 'absolute',
-                      left: pos.x,
-                      top: pos.y,
-                      width: NW,
-                      height: NH,
-                    }}
-                    className="cursor-pointer group"
-                  >
-                    <div
-                      className={`w-full h-full bg-white flex items-stretch rounded-lg overflow-hidden transition-all duration-150 ${
-                        isSelected
-                          ? 'shadow-[0_0_0_2px_#3d9191,0_4px_16px_rgba(61,145,145,0.2)]'
-                          : 'shadow-[0_1px_4px_rgba(0,0,0,0.10),0_0_0_1px_rgba(0,0,0,0.06)] hover:shadow-[0_2px_8px_rgba(0,0,0,0.13),0_0_0_1px_rgba(0,0,0,0.09)]'
-                      }`}
-                    >
-                      {/* Coloured left accent bar */}
-                      <div className="w-1.5 flex-shrink-0" style={{ backgroundColor: accentColor }} />
-
-                      {/* Content */}
-                      <div className="flex-1 px-3 py-2 flex flex-col justify-center min-w-0">
-                        <div className="flex items-center gap-1.5 mb-0.5">
-                          <span
-                            className="text-[10px] font-black px-1.5 py-0.5 rounded-sm"
-                            style={{ backgroundColor: accentColor + '20', color: accentColor }}
-                          >
-                            {s.key}
-                          </span>
-                          {s.is_won && (
-                            <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-sm">WON</span>
-                          )}
-                          {s.is_lost && (
-                            <span className="text-[9px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded-sm">LOST</span>
-                          )}
-                        </div>
-                        <p className="text-xs font-semibold text-slate-700 leading-tight truncate">{s.label}</p>
-                        <p className="text-[9px] text-slate-400 mt-0.5">
-                          {outgoing} out · {incoming} in
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
-
               {/* Row labels */}
               {mainStages.length > 0 && (
-                <div
-                  style={{ position: 'absolute', left: PAD, top: PAD - 20 }}
-                  className="text-[9px] font-bold text-slate-400 uppercase tracking-widest"
-                >
+                <div style={{ position: 'absolute', left: PAD, top: PAD }}
+                  className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
                   Pipeline stages
                 </div>
               )}
               {terminalStages.length > 0 && (
-                <div
-                  style={{ position: 'absolute', left: PAD, top: termY - 18 }}
-                  className="text-[9px] font-bold text-slate-400 uppercase tracking-widest"
-                >
+                <div style={{ position: 'absolute', left: PAD, top: termBaseY }}
+                  className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
                   Terminal stages
                 </div>
               )}
+
+              {/* Stage nodes */}
+              {sorted.map(s => {
+                const pos = positions[s.key]
+                if (!pos) return null
+                const accentHex = TEXT_TO_HEX[s.color_text] ?? '#475569'
+                const isSource = connectingFrom === s.key
+                const isConnectedToSource = connectingFrom !== null && connectingFrom !== s.key
+                  && flows.some(f => f.from_stage === connectingFrom && f.to_stage === s.key)
+                const hasSelection = !!connectingFrom
+                const isTargetable = hasSelection && !isSource
+
+                return (
+                  <div
+                    key={s.key}
+                    onClick={e => { e.stopPropagation(); handleNodeClick(s.key) }}
+                    style={{ position: 'absolute', left: pos.x, top: pos.y, width: NW, height: NH }}
+                    className={`group ${isTargetable ? 'cursor-crosshair' : 'cursor-pointer'}`}
+                    title={isTargetable ? `Click to ${isConnectedToSource ? 'remove' : 'add'} connection from ${sorted.find(s => s.key === connectingFrom)?.label}` : 'Click to select'}
+                  >
+                    <div className={`
+                      w-full h-full bg-white flex items-stretch rounded-lg overflow-hidden transition-all duration-150
+                      ${isSource
+                        ? 'shadow-[0_0_0_3px_#14b8a6,0_4px_20px_rgba(20,184,166,0.3)]'
+                        : isTargetable
+                          ? isConnectedToSource
+                            ? 'shadow-[0_0_0_2px_#14b8a6] hover:shadow-[0_0_0_3px_#14b8a6,0_2px_12px_rgba(20,184,166,0.2)]'
+                            : 'shadow-[0_1px_4px_rgba(0,0,0,0.1)] hover:shadow-[0_0_0_2px_#14b8a6,0_2px_12px_rgba(20,184,166,0.15)]'
+                          : 'shadow-[0_1px_4px_rgba(0,0,0,0.10),0_0_0_1px_rgba(0,0,0,0.06)] hover:shadow-[0_2px_8px_rgba(0,0,0,0.13),0_0_0_1px_rgba(0,0,0,0.09)]'
+                      }
+                    `}>
+                      {/* Left accent */}
+                      <div className="w-1.5 flex-shrink-0 transition-all" style={{ backgroundColor: accentHex }} />
+
+                      {/* Content */}
+                      <div className="flex-1 px-3 py-2 flex flex-col justify-center min-w-0">
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                          <span className="text-[10px] font-black px-1.5 py-0.5 rounded-sm"
+                            style={{ backgroundColor: accentHex + '20', color: accentHex }}>
+                            {s.key}
+                          </span>
+                          {s.is_won && <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-sm">WON</span>}
+                          {s.is_lost && <span className="text-[9px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded-sm">LOST</span>}
+                          {/* Connected indicator when this is a target */}
+                          {isConnectedToSource && (
+                            <span className="ml-auto flex items-center gap-0.5 text-[9px] font-bold text-teal-600">
+                              <Check size={9} />linked
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs font-semibold text-slate-700 leading-tight truncate">{s.label}</p>
+                        <p className="text-[9px] text-slate-400 mt-0.5">
+                          {flows.filter(f => f.from_stage === s.key).length} out ·{' '}
+                          {flows.filter(f => f.to_stage === s.key).length} in
+                        </p>
+                      </div>
+
+                      {/* Right edge: connect hint (always on hover, or pulsing when source) */}
+                      <div className={`flex items-center justify-center w-6 flex-shrink-0 transition-all ${
+                        isSource
+                          ? 'opacity-100'
+                          : 'opacity-0 group-hover:opacity-100'
+                      }`}>
+                        <div className={`w-3 h-3 rounded-full border-2 transition-all ${
+                          isSource
+                            ? 'border-teal-400 bg-teal-400 animate-pulse'
+                            : isConnectedToSource
+                              ? 'border-teal-500 bg-teal-100'
+                              : 'border-slate-300 bg-white'
+                        }`} />
+                      </div>
+                    </div>
+
+                    {/* Source label */}
+                    {isSource && (
+                      <div className="absolute -top-6 left-1/2 -translate-x-1/2 whitespace-nowrap">
+                        <span className="text-[9px] font-bold text-teal-600 bg-teal-50 border border-teal-200 px-2 py-0.5 rounded-full">
+                          source ↓
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           </div>
 
-          {/* ── Right panel ── */}
-          <div className="w-64 flex-shrink-0 bg-white border-l border-slate-200 flex flex-col overflow-hidden">
-            {selectedStage ? (
-              <>
-                {/* Panel header */}
-                <div className="px-4 py-3.5 border-b border-slate-100">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <span
-                      className="text-xs font-black px-2 py-0.5 rounded"
-                      style={{
-                        backgroundColor: (TEXT_TO_HEX[selectedStage.color_text] ?? '#475569') + '18',
-                        color: TEXT_TO_HEX[selectedStage.color_text] ?? '#475569',
-                      }}
-                    >
-                      {selectedStage.key}
-                    </span>
-                    {selectedStage.is_won && <span className="text-[9px] font-bold text-emerald-600">WON</span>}
-                    {selectedStage.is_lost && <span className="text-[9px] font-bold text-red-500">LOST</span>}
-                  </div>
-                  <p className="text-sm font-bold text-slate-800">{selectedStage.label}</p>
-                  <p className="text-[10px] text-slate-400 mt-0.5">
-                    {flows.filter(f => f.from_stage === selectedKey).length} outgoing ·{' '}
-                    {flows.filter(f => f.to_stage === selectedKey).length} incoming connections
-                  </p>
-                </div>
+          {/* ── Collapsible right panel ── */}
+          <div className={`relative flex-shrink-0 transition-all duration-200 ${sidebarOpen ? 'w-64' : 'w-0'} bg-white border-l border-slate-200 overflow-hidden`}>
 
-                {/* Transition toggles */}
-                <div className="flex-1 overflow-y-auto">
-                  <div className="px-4 pt-3 pb-1">
-                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Lead can move to</p>
+            {/* Toggle button — sits on the left edge of the panel */}
+            <button
+              onClick={() => setSidebarOpen(v => !v)}
+              className="absolute -left-7 top-1/2 -translate-y-1/2 z-10 w-7 h-14 bg-white border border-r-0 border-slate-200 rounded-l-lg flex items-center justify-center hover:bg-slate-50 transition-colors shadow-sm"
+            >
+              {sidebarOpen ? <ChevronRight size={13} className="text-slate-400" /> : <ChevronLeft size={13} className="text-slate-400" />}
+            </button>
+
+            <div className="w-64 flex flex-col h-full overflow-hidden">
+              {selectedStage ? (
+                <>
+                  {/* Panel header */}
+                  <div className="px-4 py-3.5 border-b border-slate-100">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-xs font-black px-2 py-0.5 rounded"
+                        style={{
+                          backgroundColor: (TEXT_TO_HEX[selectedStage.color_text] ?? '#475569') + '18',
+                          color: TEXT_TO_HEX[selectedStage.color_text] ?? '#475569',
+                        }}>
+                        {selectedStage.key}
+                      </span>
+                      {selectedStage.is_won && <span className="text-[9px] font-bold text-emerald-600">WON</span>}
+                      {selectedStage.is_lost && <span className="text-[9px] font-bold text-red-500">LOST</span>}
+                    </div>
+                    <p className="text-sm font-bold text-slate-800">{selectedStage.label}</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">
+                      {flows.filter(f => f.from_stage === selectedKey).length} outgoing ·{' '}
+                      {flows.filter(f => f.to_stage === selectedKey).length} incoming
+                    </p>
                   </div>
-                  <div className="px-3 pb-4 space-y-1">
-                    {sorted
-                      .filter(s => s.key !== selectedKey)
-                      .map(to => {
+
+                  {/* Transition list */}
+                  <div className="flex-1 overflow-y-auto">
+                    <div className="px-4 pt-3 pb-1 flex items-center gap-1.5">
+                      <ArrowRight size={10} className="text-slate-400" />
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Lead can move to</p>
+                    </div>
+                    <div className="px-3 pb-4 space-y-1">
+                      {sorted.filter(s => s.key !== selectedKey).map(to => {
                         const active = flows.some(f => f.from_stage === selectedKey && f.to_stage === to.key)
                         const toAccent = TEXT_TO_HEX[to.color_text] ?? '#475569'
                         return (
-                          <button
-                            key={to.key}
-                            onClick={() => toggleFlow(selectedKey!, to.key)}
+                          <button key={to.key} onClick={() => toggleFlow(selectedKey!, to.key)}
                             className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left transition-all ${
-                              active ? 'bg-brand-50 border border-brand-200' : 'hover:bg-slate-50 border border-transparent'
-                            }`}
-                          >
-                            {/* Checkbox */}
+                              active ? 'bg-teal-50 border border-teal-200' : 'hover:bg-slate-50 border border-transparent'
+                            }`}>
                             <div className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 transition-colors ${
-                              active ? 'bg-brand-400 border-brand-400 border' : 'border border-slate-300 bg-white'
+                              active ? 'bg-teal-500 border-teal-500 border' : 'border border-slate-300 bg-white'
                             }`}>
                               {active && <Check size={10} className="text-white" />}
                             </div>
-                            {/* Stage badge */}
-                            <span
-                              className="text-[10px] font-black px-1.5 py-0.5 rounded flex-shrink-0"
-                              style={{ backgroundColor: toAccent + '18', color: toAccent }}
-                            >
+                            <span className="text-[10px] font-black px-1.5 py-0.5 rounded flex-shrink-0"
+                              style={{ backgroundColor: toAccent + '18', color: toAccent }}>
                               {to.key}
                             </span>
                             <span className="text-xs text-slate-600 font-medium truncate">{to.label}</span>
                           </button>
                         )
                       })}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="flex-1 flex flex-col items-center justify-center text-center px-5 py-8">
+                  <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
+                    <Zap size={20} className="text-slate-400" />
+                  </div>
+                  <p className="text-sm font-semibold text-slate-600 mb-1">How to use</p>
+                  <div className="text-left space-y-2.5 mt-2 w-full">
+                    {[
+                      { icon: '①', text: 'Click a stage node to select it as the source' },
+                      { icon: '②', text: 'Click any other stage to add or remove a connection' },
+                      { icon: '③', text: 'Click the canvas background to deselect' },
+                    ].map(step => (
+                      <div key={step.icon} className="flex items-start gap-2.5">
+                        <span className="text-sm font-bold text-slate-400 flex-shrink-0">{step.icon}</span>
+                        <p className="text-xs text-slate-500 leading-relaxed">{step.text}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-5 w-full space-y-1.5">
+                    <div className="flex items-center gap-2 text-[10px] text-slate-400">
+                      <div className="w-8 h-0.5 bg-slate-400" />
+                      outgoing connection
+                    </div>
+                    <div className="flex items-center gap-2 text-[10px] text-slate-400">
+                      <div className="w-8 h-0.5" style={{ background: 'repeating-linear-gradient(to right, #94a3b8 0, #94a3b8 4px, transparent 4px, transparent 8px)' }} />
+                      incoming connection
+                    </div>
+                    <div className="flex items-center gap-2 text-[10px] text-slate-400">
+                      <div className="w-8 h-0.5 bg-teal-400" />
+                      selected path
+                    </div>
                   </div>
                 </div>
-              </>
-            ) : (
-              <div className="flex-1 flex flex-col items-center justify-center text-center px-5 py-8">
-                <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
-                  <MousePointer2 size={20} className="text-slate-400" />
-                </div>
-                <p className="text-sm font-semibold text-slate-600 mb-1">Select a stage</p>
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  Click any node on the canvas to view and edit its allowed transitions
-                </p>
-                <div className="mt-6 w-full space-y-2">
-                  <div className="flex items-center gap-2 text-[10px] text-slate-400">
-                    <div className="w-6 h-0.5 bg-slate-300 flex-shrink-0" />
-                    outgoing flow
-                  </div>
-                  <div className="flex items-center gap-2 text-[10px] text-slate-400">
-                    <div className="w-6 h-0.5 flex-shrink-0" style={{background: 'repeating-linear-gradient(to right, #94a3b8 0, #94a3b8 4px, transparent 4px, transparent 8px)'}} />
-                    incoming flow
-                  </div>
-                  <div className="flex items-center gap-2 text-[10px] text-slate-400">
-                    <div className="w-6 h-0.5 bg-brand-400 flex-shrink-0" />
-                    selected connection
-                  </div>
-                </div>
-              </div>
-            )}
+              )}
 
-            {/* Panel footer — legend */}
-            <div className="border-t border-slate-100 px-4 py-3">
-              <div className="flex items-center gap-1.5">
-                <GitBranch size={11} className="text-slate-400" />
-                <span className="text-[10px] text-slate-400">
-                  {flows.length} transition{flows.length !== 1 ? 's' : ''} · {stages.length} stage{stages.length !== 1 ? 's' : ''}
-                </span>
+              {/* Footer */}
+              <div className="border-t border-slate-100 px-4 py-3">
+                <div className="flex items-center gap-1.5">
+                  <GitBranch size={11} className="text-slate-400" />
+                  <span className="text-[10px] text-slate-400">
+                    {flows.length} transition{flows.length !== 1 ? 's' : ''} · {stages.length} stage{stages.length !== 1 ? 's' : ''}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
