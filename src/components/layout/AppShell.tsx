@@ -60,9 +60,11 @@ interface Props {
   employee: Employee
   children: React.ReactNode
   notifCount?: number
+  orgLogoUrl?: string | null
+  orgName?: string
 }
 
-export function AppShell({ employee, children, notifCount = 0 }: Props) {
+export function AppShell({ employee, children, notifCount = 0, orgLogoUrl, orgName }: Props) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
@@ -101,7 +103,13 @@ export function AppShell({ employee, children, notifCount = 0 }: Props) {
     <div className="flex flex-col h-full bg-brand-800">
       {/* Logo */}
       <div className="px-5 py-4 border-b border-brand-700 flex items-center justify-center">
-        <Image src="/Admishine Logo.png" alt="admishine" width={160} height={60} className="object-contain h-12 w-auto brightness-0 invert" priority />
+        <Image
+          src={orgLogoUrl || '/Admishine Logo.png'}
+          alt={orgName || 'logo'}
+          width={160} height={60}
+          className="object-contain h-12 w-auto brightness-0 invert"
+          priority
+        />
       </div>
 
       {/* Nav */}
@@ -178,7 +186,12 @@ export function AppShell({ employee, children, notifCount = 0 }: Props) {
           <button onClick={() => setSidebarOpen(true)} className="text-white p-1">
             <Menu size={22} />
           </button>
-          <Image src="/Admishine Logo.png" alt="admishine" width={110} height={36} className="object-contain h-8 w-auto brightness-0 invert" />
+          <Image
+            src={orgLogoUrl || '/Admishine Logo.png'}
+            alt={orgName || 'logo'}
+            width={110} height={36}
+            className="object-contain h-8 w-auto brightness-0 invert"
+          />
           <div className="flex items-center gap-3">
             {notifCount > 0 && (
               <div className="relative">

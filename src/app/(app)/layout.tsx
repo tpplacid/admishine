@@ -40,9 +40,18 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const stageMap = Object.fromEntries(stages.map(s => [s.key, s]))
   const roleMap = Object.fromEntries(roles.map(r => [r.key, r]))
 
+  // Fetch org logo
+  const { data: orgData } = await supabase
+    .from('orgs')
+    .select('logo_url, name')
+    .eq('id', employee.org_id)
+    .single()
+
   return (
     <OrgConfigProvider config={{ stages, roles, stageMap, roleMap }}>
-      <AppShell employee={employee}>{children}</AppShell>
+      <AppShell employee={employee} orgLogoUrl={orgData?.logo_url ?? null} orgName={orgData?.name ?? ''}>
+        {children}
+      </AppShell>
     </OrgConfigProvider>
   )
 }
