@@ -5,6 +5,13 @@ import toast from 'react-hot-toast'
 import { createClient } from '@/lib/supabase/client'
 import { useOrgConfig } from '@/context/OrgConfigContext'
 
+function toDaysHours(val: number | null | undefined): { d: number; h: number } {
+  if (val == null) return { d: 0, h: 0 }
+  const d = Math.floor(val)
+  const h = Math.round((val - d) * 24)
+  return { d, h }
+}
+
 interface Props { orgId: string; slaConfig: Record<string, number> }
 
 export function SlaThresholdsClient({ orgId, slaConfig: initial }: Props) {
@@ -30,24 +37,25 @@ export function SlaThresholdsClient({ orgId, slaConfig: initial }: Props) {
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 divide-y divide-slate-100">
-        {slaStages.map(s => (
-          <div key={s.key} className="flex items-center justify-between px-5 py-4 gap-4">
-            <div>
+        {slaStages.map(s => {
+          const val = config[s.key] ?? s.sla_days ?? null
+          const { d, h } = toDaysHours(val)
+          return (
+            <div key={s.key} className="flex items-center justify-between px-5 py-4 gap-4 flex-wrap">
               <p className="text-sm font-semibold text-slate-900">{s.label}</p>
+              <div className="flex items-center gap-2">
+                <input type="number" min={0} value={d}
+                  onChange={e => setConfig(prev => ({ ...prev, [s.key]: (parseInt(e.target.value) || 0) + h / 24 }))}
+                  className="w-16 px-2 py-1.5 border border-slate-300 rounded-lg text-sm text-center focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                <span className="text-sm text-slate-500">d</span>
+                <input type="number" min={0} max={23} value={h}
+                  onChange={e => setConfig(prev => ({ ...prev, [s.key]: d + (parseInt(e.target.value) || 0) / 24 }))}
+                  className="w-16 px-2 py-1.5 border border-slate-300 rounded-lg text-sm text-center focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                <span className="text-sm text-slate-500">h</span>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                min={1}
-                max={90}
-                value={config[s.key] ?? s.sla_days ?? ''}
-                onChange={e => setConfig(prev => ({ ...prev, [s.key]: parseInt(e.target.value) || 1 }))}
-                className="w-20 px-3 py-1.5 border border-slate-300 rounded-lg text-sm text-center focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-              <span className="text-sm text-slate-500">days</span>
-            </div>
-          </div>
-        ))}
+          )
+        })}
         {slaStages.length === 0 && (
           <p className="px-5 py-4 text-sm text-slate-400">No stages with deadlines configured. Set deadline days in Settings → Pipeline.</p>
         )}
