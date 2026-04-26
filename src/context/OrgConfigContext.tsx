@@ -27,11 +27,30 @@ export interface OrgRole {
   position: number
 }
 
+export interface OrgFeatures {
+  lead_crm: boolean   // Dashboard, leads, CSV upload
+  sla: boolean        // Deadline breach tracking
+  pipeline: boolean   // Pipeline stage customisation
+  roles: boolean      // Role management
+  attendance: boolean // Attendance & leave management
+  meta: boolean       // Meta / Facebook lead integration
+}
+
+export const DEFAULT_FEATURES: OrgFeatures = {
+  lead_crm: true,
+  sla: true,
+  pipeline: true,
+  roles: true,
+  attendance: true,
+  meta: true,
+}
+
 interface OrgConfig {
   stages: OrgStage[]
   roles: OrgRole[]
   stageMap: Record<string, OrgStage>
   roleMap: Record<string, OrgRole>
+  features: OrgFeatures
 }
 
 const OrgConfigContext = createContext<OrgConfig>({
@@ -39,6 +58,7 @@ const OrgConfigContext = createContext<OrgConfig>({
   roles: [],
   stageMap: {},
   roleMap: {},
+  features: DEFAULT_FEATURES,
 })
 
 export function OrgConfigProvider({ children, config }: { children: React.ReactNode; config: OrgConfig }) {

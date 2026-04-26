@@ -1,5 +1,7 @@
 import { requireRole } from '@/lib/auth'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getOrgFeatures } from '@/lib/orgFeatures'
+import { FeatureGate } from '@/components/FeatureGate'
 import { PipelineClient } from './PipelineClient'
 import { DEFAULT_STAGES, DEFAULT_FLOWS } from '@/context/orgDefaults'
 
@@ -7,10 +9,20 @@ export const dynamic = 'force-dynamic'
 
 export default async function PipelinePage() {
   const employee = await requireRole(['ad'])
+  const features = await getOrgFeatures(employee.org_id)
+
+  if (!features.pipeline) {
+    return (
+      <FeatureGate
+        featureLabel="Pipeline Customisation"
+        description="Customise your lead stages, substages, and transition flows to match your exact admissions process. Upgrade your plan to unlock this module."
+      />
+    )
+  }
+
   const supabase = createAdminClient()
   const orgId = employee.org_id
 
-  // Fetch stages (two queries — no FK between substages and stages)
   let { data: stageRows } = await supabase
     .from('org_stages')
     .select('*')
@@ -18,7 +30,6 @@ export default async function PipelinePage() {
     .order('position')
 
   if (!stageRows || stageRows.length === 0) {
-    // Seed defaults
     for (const s of DEFAULT_STAGES) {
       const { data: inserted } = await supabase.from('org_stages').insert({
         org_id: orgId, key: s.key, label: s.label,
@@ -40,7 +51,6 @@ export default async function PipelinePage() {
     stageRows = fresh
   }
 
-  // Fetch substages separately
   const { data: substageRows } = await supabase
     .from('org_stage_substages')
     .select('id, stage_key, label, position')

@@ -6,11 +6,12 @@ import { usePathname, useRouter } from 'next/navigation'
 import { Employee, formatRole } from '@/types'
 import { createClient } from '@/lib/supabase/client'
 import { cn, getInitials } from '@/lib/utils'
+import { useOrgConfig, OrgFeatures } from '@/context/OrgConfigContext'
 import toast from 'react-hot-toast'
 import {
   LayoutDashboard, Users, ClipboardList, Calendar, FileText,
-  BarChart3, LogOut, Menu, Bell, Shield, UserCog,
-  MessageSquare, CheckSquare, GitBranch, Upload, TrendingDown,
+  BarChart3, LogOut, Menu, Bell,
+  MessageSquare, CheckSquare, TrendingDown,
   Settings, UsersRound, AlertCircle, PieChart,
 } from 'lucide-react'
 import { RealtimeNotifier } from '@/components/RealtimeNotifier'
@@ -20,39 +21,40 @@ interface NavItem {
   label: string
   icon: React.ReactNode
   roles?: string[]
+  feature?: keyof OrgFeatures
 }
 
 const navItems: NavItem[] = [
-  { href: '/dashboard',        label: 'Dashboard',        icon: <LayoutDashboard size={17} /> },
-  { href: '/attendance',       label: 'Attendance',       icon: <Calendar size={17} /> },
-  { href: '/leaves',           label: 'Leaves',           icon: <ClipboardList size={17} /> },
-  { href: '/templates',        label: 'WA Templates',     icon: <MessageSquare size={17} /> },
-  { href: '/sla-explanations', label: 'SLA Explanations', icon: <Bell size={17} /> },
-  { href: '/team',             label: 'My Team',          icon: <Users size={17} />, roles: ['tl','ad'] },
-  { href: '/team/sla',         label: 'Deadline Breaches', icon: <Bell size={17} />, roles: ['tl','ad'] },
-  { href: '/team/activity',    label: 'Team Activity',    icon: <BarChart3 size={17} />, roles: ['tl','ad'] },
+  { href: '/dashboard',        label: 'Dashboard',         icon: <LayoutDashboard size={17} />, feature: 'lead_crm' },
+  { href: '/attendance',       label: 'Attendance',        icon: <Calendar size={17} />,        feature: 'attendance' },
+  { href: '/leaves',           label: 'Leaves',            icon: <ClipboardList size={17} />,   feature: 'attendance' },
+  { href: '/templates',        label: 'WA Templates',      icon: <MessageSquare size={17} />,   feature: 'lead_crm' },
+  { href: '/sla-explanations', label: 'SLA Explanations',  icon: <Bell size={17} />,            feature: 'sla' },
+  { href: '/team',             label: 'My Team',           icon: <Users size={17} />,           roles: ['tl','ad'] },
+  { href: '/team/sla',         label: 'Deadline Breaches', icon: <Bell size={17} />,            roles: ['tl','ad'], feature: 'sla' },
+  { href: '/team/activity',    label: 'Team Activity',     icon: <BarChart3 size={17} />,       roles: ['tl','ad'], feature: 'lead_crm' },
 ]
 
 const adminNavItems: NavItem[] = [
-  { href: '/admin/leads',            label: 'All Leads',        icon: <FileText size={17} /> },
-  { href: '/admin/offline-approvals',label: 'Offline Approvals',icon: <CheckSquare size={17} /> },
-  { href: '/admin/stuck-leads',      label: 'Stuck Leads',      icon: <TrendingDown size={17} /> },
+  { href: '/admin/leads',             label: 'All Leads',         icon: <FileText size={17} />,    feature: 'lead_crm' },
+  { href: '/admin/offline-approvals', label: 'Offline Approvals', icon: <CheckSquare size={17} />, feature: 'lead_crm' },
+  { href: '/admin/stuck-leads',       label: 'Stuck Leads',       icon: <TrendingDown size={17} />,feature: 'lead_crm' },
 ]
 
 const analyticsNavItems: NavItem[] = [
-  { href: '/admin/reports',          label: 'Analytics',        icon: <PieChart size={17} /> },
+  { href: '/admin/reports', label: 'Analytics', icon: <PieChart size={17} />, feature: 'lead_crm' },
 ]
 
 const teamNavItems: NavItem[] = [
-  { href: '/admin/team-mgmt',        label: 'Team Management',  icon: <UsersRound size={17} /> },
+  { href: '/admin/team-mgmt', label: 'Team Management', icon: <UsersRound size={17} /> },
 ]
 
 const slaNavItems: NavItem[] = [
-  { href: '/admin/sla-mgmt',         label: 'SLA',              icon: <AlertCircle size={17} /> },
+  { href: '/admin/sla-mgmt', label: 'SLA', icon: <AlertCircle size={17} />, feature: 'sla' },
 ]
 
 const settingsNavItems: NavItem[] = [
-  { href: '/admin/settings',         label: 'Settings',         icon: <Settings size={17} /> },
+  { href: '/admin/settings', label: 'Settings', icon: <Settings size={17} /> },
 ]
 
 interface Props {
@@ -67,6 +69,7 @@ export function AppShell({ employee, children, notifCount = 0, orgLogoUrl, orgNa
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
+  const { features } = useOrgConfig()
 
   async function handleLogout() {
     const supabase = createClient()
@@ -77,7 +80,14 @@ export function AppShell({ employee, children, notifCount = 0, orgLogoUrl, orgNa
   }
 
   const isAdmin = employee.role === 'ad'
-  const visibleNav = navItems.filter(item => !item.roles || item.roles.includes(employee.role))
+
+  function isVisible(item: NavItem): boolean {
+    if (item.roles && !item.roles.includes(employee.role)) return false
+    if (item.feature && !features[item.feature]) return false
+    return true
+  }
+
+  const visibleNav = navItems.filter(isVisible)
 
   function NavLink({ item }: { item: NavItem }) {
     const active = pathname === item.href || pathname.startsWith(item.href + '/')
@@ -115,22 +125,38 @@ export function AppShell({ employee, children, notifCount = 0, orgLogoUrl, orgNa
 
         {isAdmin && (
           <>
-            <div className="pt-4 pb-1 px-3">
-              <p className="text-[10px] font-bold text-brand-300 uppercase tracking-widest">Admin</p>
-            </div>
-            {adminNavItems.map(item => <NavLink key={item.href} item={item} />)}
-            <div className="pt-4 pb-1 px-3">
-              <p className="text-[10px] font-bold text-brand-300 uppercase tracking-widest">Analytics</p>
-            </div>
-            {analyticsNavItems.map(item => <NavLink key={item.href} item={item} />)}
+            {adminNavItems.some(isVisible) && (
+              <>
+                <div className="pt-4 pb-1 px-3">
+                  <p className="text-[10px] font-bold text-brand-300 uppercase tracking-widest">Admin</p>
+                </div>
+                {adminNavItems.filter(isVisible).map(item => <NavLink key={item.href} item={item} />)}
+              </>
+            )}
+
+            {analyticsNavItems.some(isVisible) && (
+              <>
+                <div className="pt-4 pb-1 px-3">
+                  <p className="text-[10px] font-bold text-brand-300 uppercase tracking-widest">Analytics</p>
+                </div>
+                {analyticsNavItems.filter(isVisible).map(item => <NavLink key={item.href} item={item} />)}
+              </>
+            )}
+
             <div className="pt-4 pb-1 px-3">
               <p className="text-[10px] font-bold text-brand-300 uppercase tracking-widest">Team</p>
             </div>
             {teamNavItems.map(item => <NavLink key={item.href} item={item} />)}
-            <div className="pt-4 pb-1 px-3">
-              <p className="text-[10px] font-bold text-brand-300 uppercase tracking-widest">Deadlines</p>
-            </div>
-            {slaNavItems.map(item => <NavLink key={item.href} item={item} />)}
+
+            {slaNavItems.some(isVisible) && (
+              <>
+                <div className="pt-4 pb-1 px-3">
+                  <p className="text-[10px] font-bold text-brand-300 uppercase tracking-widest">Deadlines</p>
+                </div>
+                {slaNavItems.filter(isVisible).map(item => <NavLink key={item.href} item={item} />)}
+              </>
+            )}
+
             <div className="pt-4 pb-1 px-3">
               <p className="text-[10px] font-bold text-brand-300 uppercase tracking-widest">Config</p>
             </div>

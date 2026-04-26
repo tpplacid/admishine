@@ -1,6 +1,6 @@
 import { requireAuth } from '@/lib/auth'
 import { AppShell } from '@/components/layout/AppShell'
-import { OrgConfigProvider, OrgStage, OrgRole } from '@/context/OrgConfigContext'
+import { OrgConfigProvider, OrgStage, OrgRole, OrgFeatures, DEFAULT_FEATURES } from '@/context/OrgConfigContext'
 import { DEFAULT_STAGES, DEFAULT_ROLES } from '@/context/orgDefaults'
 import { createAdminClient } from '@/lib/supabase/admin'
 
@@ -40,15 +40,25 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const stageMap = Object.fromEntries(stages.map(s => [s.key, s]))
   const roleMap = Object.fromEntries(roles.map(r => [r.key, r]))
 
-  // Fetch org logo
+  // Fetch org logo + features
   const { data: orgData } = await supabase
     .from('orgs')
-    .select('logo_url, name')
+    .select('logo_url, name, features')
     .eq('id', employee.org_id)
     .single()
 
+  const raw = (orgData?.features ?? {}) as Record<string, boolean>
+  const features: OrgFeatures = {
+    lead_crm:   raw.lead_crm   ?? DEFAULT_FEATURES.lead_crm,
+    sla:        raw.sla        ?? DEFAULT_FEATURES.sla,
+    pipeline:   raw.pipeline   ?? DEFAULT_FEATURES.pipeline,
+    roles:      raw.roles      ?? DEFAULT_FEATURES.roles,
+    attendance: raw.attendance ?? DEFAULT_FEATURES.attendance,
+    meta:       raw.meta       ?? DEFAULT_FEATURES.meta,
+  }
+
   return (
-    <OrgConfigProvider config={{ stages, roles, stageMap, roleMap }}>
+    <OrgConfigProvider config={{ stages, roles, stageMap, roleMap, features }}>
       <AppShell employee={employee} orgLogoUrl={orgData?.logo_url ?? null} orgName={orgData?.name ?? ''}>
         {children}
       </AppShell>

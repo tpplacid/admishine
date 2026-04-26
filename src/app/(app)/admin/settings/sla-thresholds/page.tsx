@@ -1,9 +1,22 @@
 import { requireRole } from '@/lib/auth'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getOrgFeatures } from '@/lib/orgFeatures'
+import { FeatureGate } from '@/components/FeatureGate'
 import { SlaThresholdsClient } from './SlaThresholdsClient'
 
 export default async function SlaThresholdsPage() {
   const employee = await requireRole(['ad'])
+  const features = await getOrgFeatures(employee.org_id)
+
+  if (!features.sla) {
+    return (
+      <FeatureGate
+        featureLabel="Deadline Rules"
+        description="Set custom deadline windows per pipeline stage so your team never misses a follow-up. SLA breach tracking keeps everyone accountable. Upgrade to configure deadline rules."
+      />
+    )
+  }
+
   const supabase = createAdminClient()
   const { data: org } = await supabase.from('orgs').select('id, sla_config').eq('id', employee.org_id).single()
   const slaConfig = (org?.sla_config as Record<string, number> | null) || { A: 1, B: 5, C: 5, D: 20 }

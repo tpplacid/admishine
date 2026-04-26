@@ -7,29 +7,51 @@ import toast from 'react-hot-toast'
 
 type Employee = { id: string; name: string; email: string; role: string; is_active: boolean; created_at: string }
 type Invite = { id: string; token: string; email: string | null; name: string | null; role: string; used_at: string | null; expires_at: string; created_at: string; link: string }
-type Features = { lead_crm: boolean; attendance: boolean; meta: boolean }
+type Features = {
+  lead_crm: boolean
+  sla: boolean
+  pipeline: boolean
+  roles: boolean
+  attendance: boolean
+  meta: boolean
+}
 type Org = { id: string; name: string; slug: string; logo_url: string | null; features?: Features; created_at: string }
 
 const ROLES = ['ad', 'tl', 'counsellor', 'telesales']
 const ROLE_LABELS: Record<string, string> = { ad: 'Admin', tl: 'Team Lead', counsellor: 'Counsellor', telesales: 'Telesales' }
 
-const DEFAULT_FEATURES: Features = { lead_crm: true, attendance: true, meta: true }
+const DEFAULT_FEATURES: Features = { lead_crm: true, sla: true, pipeline: true, roles: true, attendance: true, meta: true }
 
-const FEATURE_CONFIG = [
+const FEATURE_CONFIG: { key: keyof Features; label: string; description: string }[] = [
   {
-    key: 'lead_crm' as const,
-    label: 'Lead CRM',
-    description: 'Access to lead pipeline, manual lead creation and management',
+    key: 'lead_crm',
+    label: 'Dashboard & Lead Management',
+    description: 'Core lead pipeline — dashboard, lead creation, updates, bulk CSV upload, and offline approvals',
   },
   {
-    key: 'attendance' as const,
+    key: 'sla',
+    label: 'Deadline Breach (SLA)',
+    description: 'Deadline tracking per pipeline stage — breach alerts, explanation requests, and SLA logs',
+  },
+  {
+    key: 'pipeline',
+    label: 'Pipeline Customisation',
+    description: 'Customise lead stages, substages, and allowed transition flows',
+  },
+  {
+    key: 'roles',
+    label: 'Role Management',
+    description: 'Define custom roles with granular access permissions for team members',
+  },
+  {
+    key: 'attendance',
     label: 'Attendance & Leave Management',
-    description: 'Clock-in/out, wifi verification, leave requests and approvals',
+    description: 'Clock-in/out with wifi verification, leave requests, and approvals',
   },
   {
-    key: 'meta' as const,
+    key: 'meta',
     label: 'Meta / Facebook Integration',
-    description: 'Automatically import leads from Meta lead forms',
+    description: 'Automatically import leads from Meta (Facebook & Instagram) ad campaigns',
   },
 ]
 
