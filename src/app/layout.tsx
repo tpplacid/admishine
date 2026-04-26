@@ -13,12 +13,12 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: 'Admishine CRM',
-  description: 'Admissions Consultancy CRM',
+  title: 'Consultrack',
+  description: 'Admissions CRM for education consultancies',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'Admishine CRM',
+    title: 'Consultrack',
   },
 }
 

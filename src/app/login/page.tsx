@@ -20,6 +20,7 @@ type Mode = 'workspace' | 'org-login' | 'email'
 
 export default function LoginPage() {
   const router = useRouter()
+  const hostname = typeof window !== 'undefined' ? window.location.hostname : 'consultrackk.vercel.app'
   const [mode, setMode] = useState<Mode>('workspace')
   const [slug, setSlug] = useState('')
   const [org, setOrg] = useState<{ name: string; slug: string; logo_url: string | null } | null>(null)
@@ -98,7 +99,7 @@ export default function LoginPage() {
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Workspace URL</label>
                   <div className="flex items-center border border-slate-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-brand-400 focus-within:border-transparent">
-                    <span className="px-3 py-2.5 text-sm text-slate-400 border-r border-slate-200 bg-slate-50 shrink-0 whitespace-nowrap">admishine.vercel.app/</span>
+                    <span className="px-3 py-2.5 text-sm text-slate-400 border-r border-slate-200 bg-slate-50 shrink-0 whitespace-nowrap">{hostname}/</span>
                     <input
                       type="text"
                       required
