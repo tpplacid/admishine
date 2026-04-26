@@ -28,8 +28,15 @@ export async function proxy(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   const { pathname } = request.nextUrl
 
-  // Public routes
-  if (pathname.startsWith('/login') || pathname.startsWith('/api/meta')) {
+  // Public routes — no auth required
+  const isPublic =
+    pathname.startsWith('/login') ||
+    pathname.startsWith('/superadmin') ||
+    pathname.startsWith('/invite') ||
+    pathname.startsWith('/api/')
+
+  if (isPublic) {
+    // Redirect logged-in users away from the login page
     if (user && pathname === '/login') {
       return NextResponse.redirect(new URL('/dashboard', request.url))
     }
