@@ -11,6 +11,7 @@ export default async function SettingsBulkUploadPage() {
   if (!features.lead_crm) {
     return (
       <FeatureGate
+        featureKey="lead_crm"
         featureLabel="Bulk CSV Upload"
         description="Import hundreds of leads at once from a CSV file — map columns, validate data, and push them straight into your pipeline. Upgrade to enable bulk upload."
       />

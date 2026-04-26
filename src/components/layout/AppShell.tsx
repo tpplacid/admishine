@@ -12,7 +12,7 @@ import {
   LayoutDashboard, Users, ClipboardList, Calendar, FileText,
   BarChart3, LogOut, Menu, Bell,
   MessageSquare, CheckSquare, TrendingDown,
-  Settings, UsersRound, AlertCircle, PieChart,
+  Settings, UsersRound, AlertCircle, PieChart, Ticket,
 } from 'lucide-react'
 import { RealtimeNotifier } from '@/components/RealtimeNotifier'
 
@@ -55,6 +55,7 @@ const slaNavItems: NavItem[] = [
 
 const settingsNavItems: NavItem[] = [
   { href: '/admin/settings', label: 'Settings', icon: <Settings size={17} /> },
+  { href: '/admin/support',  label: 'Support',  icon: <Ticket size={17} /> },
 ]
 
 interface Props {

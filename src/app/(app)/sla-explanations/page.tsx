@@ -11,6 +11,7 @@ export default async function SlaExplanationsPage() {
   if (!features.sla) {
     return (
       <FeatureGate
+        featureKey="sla"
         featureLabel="Deadline Breach Explanations"
         description="When a lead exceeds its deadline, counsellors are prompted to explain why. This keeps your team accountable and gives managers full visibility. Upgrade to enable deadline tracking."
       />

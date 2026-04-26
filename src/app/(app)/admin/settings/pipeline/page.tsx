@@ -14,6 +14,7 @@ export default async function PipelinePage() {
   if (!features.pipeline) {
     return (
       <FeatureGate
+        featureKey="pipeline"
         featureLabel="Pipeline Customisation"
         description="Customise your lead stages, substages, and transition flows to match your exact admissions process. Upgrade your plan to unlock this module."
       />

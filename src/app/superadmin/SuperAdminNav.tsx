@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils'
 
 const navItems = [
   { href: '/superadmin/orgs', label: 'Organisations' },
+  { href: '/superadmin/support', label: 'Support Tickets' },
 ]
 
 export default function SuperAdminNav() {

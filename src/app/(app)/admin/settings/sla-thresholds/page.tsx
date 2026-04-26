@@ -11,6 +11,7 @@ export default async function SlaThresholdsPage() {
   if (!features.sla) {
     return (
       <FeatureGate
+        featureKey="sla"
         featureLabel="Deadline Rules"
         description="Set custom deadline windows per pipeline stage so your team never misses a follow-up. SLA breach tracking keeps everyone accountable. Upgrade to configure deadline rules."
       />

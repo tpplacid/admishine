@@ -14,6 +14,7 @@ export default async function RolesPage() {
   if (!features.roles) {
     return (
       <FeatureGate
+        featureKey="roles"
         featureLabel="Role Management"
         description="Define custom roles with granular access permissions — control who can view teams, transfer leads, approve applications, and access admin areas. Upgrade to unlock."
       />

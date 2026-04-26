@@ -11,6 +11,7 @@ export default async function LeavesPage() {
   if (!features.attendance) {
     return (
       <FeatureGate
+        featureKey="attendance"
         featureLabel="Leave Management"
         description="Request and track leaves, get approvals from your manager, and maintain a clear leave history. Contact Consultrack to enable this module for your org."
       />

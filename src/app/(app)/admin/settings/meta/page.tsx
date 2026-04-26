@@ -11,6 +11,7 @@ export default async function SettingsMetaPage() {
   if (!features.meta) {
     return (
       <FeatureGate
+        featureKey="meta"
         featureLabel="Meta Lead Integration"
         description="Automatically pull leads from your Meta (Facebook & Instagram) ad campaigns directly into the pipeline — no manual data entry. Upgrade to connect Meta."
       />

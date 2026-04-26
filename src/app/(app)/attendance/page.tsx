@@ -11,6 +11,7 @@ export default async function AttendancePage() {
   if (!features.attendance) {
     return (
       <FeatureGate
+        featureKey="attendance"
         featureLabel="Attendance Tracking"
         description="Clock in and out with wifi-based verification, view your attendance history, and manage work hours seamlessly. Contact Consultrack to enable this module for your org."
       />
