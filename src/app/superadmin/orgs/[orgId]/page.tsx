@@ -14,7 +14,7 @@ export default async function OrgDetailPage({ params }: Props) {
 
   const { data: org } = await supabase
     .from('orgs')
-    .select('id, name, slug, logo_url, features, created_at')
+    .select('id, name, slug, logo_url, features, brand_palette, meta_config, created_at')
     .eq('id', orgId)
     .single()
 

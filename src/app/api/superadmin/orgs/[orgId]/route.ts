@@ -12,7 +12,7 @@ export async function PATCH(
 
   const { orgId } = await params
   const body = await req.json()
-  const { name, slug, features } = body
+  const { name, slug, features, brand_palette, meta_config } = body
 
   const supabase = createAdminClient()
 
@@ -20,6 +20,8 @@ export async function PATCH(
   if (name !== undefined) updates.name = name
   if (slug !== undefined) updates.slug = slug
   if (features !== undefined) updates.features = features
+  if (brand_palette !== undefined) updates.brand_palette = brand_palette
+  if (meta_config !== undefined) updates.meta_config = meta_config
 
   const { data, error } = await supabase
     .from('orgs')

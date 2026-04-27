@@ -6,8 +6,9 @@ import { formatDistanceToNow } from 'date-fns'
 import toast from 'react-hot-toast'
 import {
   ArrowLeft, Plus, Copy, Check, ExternalLink,
-  Users, Mail, Link2, ChevronRight, Loader2,
+  Users, Mail, Link2, Loader2,
 } from 'lucide-react'
+import { PALETTES, DEFAULT_PALETTE } from '@/lib/orgTheme'
 
 type Employee = { id: string; name: string; email: string; role: string; is_active: boolean; created_at: string }
 type Invite = { id: string; token: string; email: string | null; name: string | null; role: string; used_at: string | null; expires_at: string; created_at: string; link: string }
@@ -15,7 +16,8 @@ type Features = {
   lead_crm: boolean; sla: boolean; pipeline: boolean
   roles: boolean; attendance: boolean; meta: boolean
 }
-type Org = { id: string; name: string; slug: string; logo_url: string | null; features?: Features; created_at: string }
+type MetaConfig = { page_id?: string; access_token?: string }
+type Org = { id: string; name: string; slug: string; logo_url: string | null; features?: Features; brand_palette?: string; meta_config?: MetaConfig; created_at: string }
 
 const ROLES = ['ad', 'tl', 'counsellor', 'telesales']
 const ROLE_LABELS: Record<string, string> = { ad: 'Admin', tl: 'Team Lead', counsellor: 'Counsellor', telesales: 'Telesales' }
@@ -55,6 +57,9 @@ export default function OrgDetailClient({ org, employees: initialEmployees, invi
   const [orgName, setOrgName] = useState(org.name)
   const [orgSlug, setOrgSlug] = useState(org.slug)
   const [features, setFeatures] = useState<Features>(org.features ?? DEFAULT_FEATURES)
+  const [brandPalette, setBrandPalette] = useState(org.brand_palette ?? DEFAULT_PALETTE)
+  const [metaPageId, setMetaPageId] = useState(org.meta_config?.page_id ?? '')
+  const [metaAccessToken, setMetaAccessToken] = useState(org.meta_config?.access_token ?? '')
   const [savingSettings, setSavingSettings] = useState(false)
 
   const [showAddEmployee, setShowAddEmployee] = useState(false)
@@ -79,7 +84,13 @@ export default function OrgDetailClient({ org, employees: initialEmployees, invi
     const res = await fetch(`/api/superadmin/orgs/${org.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: orgName, slug: orgSlug, features }),
+      body: JSON.stringify({
+        name: orgName,
+        slug: orgSlug,
+        features,
+        brand_palette: brandPalette,
+        meta_config: { page_id: metaPageId || undefined, access_token: metaAccessToken || undefined },
+      }),
     })
     if (res.ok) toast.success('Organisation updated')
     else { const d = await res.json(); toast.error(d.error || 'Failed to save') }
@@ -393,6 +404,35 @@ export default function OrgDetailClient({ org, employees: initialEmployees, invi
               </div>
             </div>
 
+            {/* Brand palette */}
+            <div className="rounded-2xl p-5 border border-white/[0.07]"
+              style={{ background: 'rgba(255,255,255,0.03)' }}>
+              <div className="mb-4">
+                <h2 className="text-sm font-semibold text-slate-300">Brand palette</h2>
+                <p className="text-xs text-slate-600 mt-0.5">Customises the sidebar and accent colour for this org</p>
+              </div>
+              <div className="grid grid-cols-4 gap-2">
+                {PALETTES.map(p => (
+                  <button key={p.key} type="button" onClick={() => setBrandPalette(p.key)}
+                    className={`flex flex-col items-center gap-2 p-2.5 rounded-xl border transition-all ${
+                      brandPalette === p.key
+                        ? 'border-white/30 bg-white/[0.08]'
+                        : 'border-transparent hover:bg-white/[0.04]'
+                    }`}>
+                    <div className="w-8 h-8 rounded-full flex-shrink-0 relative"
+                      style={{ backgroundColor: p.swatch }}>
+                      {brandPalette === p.key && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <Check size={14} className="text-white drop-shadow" />
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-[10px] text-slate-400 text-center leading-tight">{p.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Feature flags */}
             <div className="rounded-2xl p-5 space-y-1 border border-white/[0.07]"
               style={{ background: 'rgba(255,255,255,0.03)' }}>
@@ -421,6 +461,37 @@ export default function OrgDetailClient({ org, employees: initialEmployees, invi
                   </button>
                 </div>
               ))}
+            </div>
+
+            {/* Meta integration config */}
+            <div className="rounded-2xl p-5 space-y-4 border border-white/[0.07]"
+              style={{ background: 'rgba(255,255,255,0.03)' }}>
+              <div>
+                <h2 className="text-sm font-semibold text-slate-300">Meta integration</h2>
+                <p className="text-xs text-slate-600 mt-0.5">Connects this org to a specific Facebook/Instagram page for auto-importing leads</p>
+              </div>
+              <div>
+                <label className="block text-xs text-slate-500 mb-1.5">Facebook Page ID</label>
+                <input
+                  type="text"
+                  value={metaPageId}
+                  onChange={e => setMetaPageId(e.target.value.trim())}
+                  placeholder="e.g. 123456789012345"
+                  className={INPUT}
+                />
+                <p className="text-[11px] text-slate-600 mt-1.5">Found in your Facebook Page settings → About → Page ID</p>
+              </div>
+              <div>
+                <label className="block text-xs text-slate-500 mb-1.5">Page Access Token <span className="text-slate-600 font-normal">(overrides global env)</span></label>
+                <input
+                  type="password"
+                  value={metaAccessToken}
+                  onChange={e => setMetaAccessToken(e.target.value.trim())}
+                  placeholder="Leave blank to use global META_PAGE_ACCESS_TOKEN"
+                  className={INPUT}
+                />
+                <p className="text-[11px] text-slate-600 mt-1.5">Generate a long-lived token in Meta Business Suite → System Users</p>
+              </div>
             </div>
 
             <button type="submit" disabled={savingSettings}

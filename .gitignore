@@ -30,8 +30,11 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files — never commit these
 .env*
+
+# Supabase local CLI state (project ref, DB pooler URL — no need to track)
+supabase/.temp/
 
 # vercel
 .vercel

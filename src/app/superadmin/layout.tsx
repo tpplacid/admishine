@@ -22,7 +22,8 @@ export default async function SuperAdminLayout({ children }: { children: React.R
   return (
     <div className="min-h-screen text-white" style={{ background: '#0d1b25' }}>
       {authed && <SuperAdminNav openTickets={openTickets} />}
-      <div className={authed ? 'pl-0 md:pl-56' : ''}>
+      {/* md: offset for sidebar, mobile: offset for topbar */}
+      <div className={authed ? 'pt-14 md:pt-0 md:pl-56' : ''}>
         {children}
       </div>
     </div>

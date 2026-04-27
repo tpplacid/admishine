@@ -15,11 +15,22 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: 'Consultrack',
   description: 'Admissions CRM for education consultancies',
+  icons: {
+    icon: [
+      { url: '/Consultrack Logo.png', type: 'image/png' },
+    ],
+    shortcut: '/Consultrack Logo.png',
+    apple: [
+      { url: '/Consultrack Logo.png', sizes: '180x180', type: 'image/png' },
+    ],
+  },
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'default',
+    statusBarStyle: 'black-translucent',
     title: 'Consultrack',
+    startupImage: '/Consultrack Logo.png',
   },
+  manifest: '/manifest.json',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

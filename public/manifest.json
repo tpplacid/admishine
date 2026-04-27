@@ -1,0 +1,23 @@
+{
+  "name": "Consultrack",
+  "short_name": "Consultrack",
+  "description": "Admissions CRM for education consultancies",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a4a50",
+  "theme_color": "#1a4a50",
+  "icons": [
+    {
+      "src": "/Consultrack Logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/Consultrack Logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

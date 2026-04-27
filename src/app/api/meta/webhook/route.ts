@@ -28,15 +28,48 @@ export async function POST(req: NextRequest) {
   const supabase = createAdminClient()
 
   for (const entry of body.entry || []) {
+    // entry.id is the Meta Page ID — use it to find the matching org
+    const metaPageId = String(entry.id || '')
+
     for (const change of entry.changes || []) {
       if (change.field !== 'leadgen') continue
       const value = change.value
       console.log('[Meta Webhook] leadgen value:', JSON.stringify(value))
 
+      // ── Resolve org by Meta Page ID ──────────────────────────
+      // 1. Try to find an org whose meta_config->page_id matches this entry
+      // 2. Fall back to the admishine org (backward compat for existing setup)
+      let org: { id: string; meta_config: Record<string, string> | null } | null = null
+      if (metaPageId) {
+        const { data: byPage } = await supabase
+          .from('orgs')
+          .select('id, meta_config')
+          .eq('meta_config->>page_id' as 'id', metaPageId)
+          .maybeSingle()
+        org = byPage ?? null
+      }
+      if (!org) {
+        // Fallback: admishine (original hardcoded org)
+        const { data: fallback } = await supabase
+          .from('orgs')
+          .select('id, meta_config')
+          .eq('slug', 'admishine')
+          .maybeSingle()
+        org = fallback ?? null
+      }
+      if (!org) {
+        console.warn('[Meta Webhook] no org found for page_id:', metaPageId, '— skipping')
+        continue
+      }
+
+      // Use org-level access token if configured, else global env var
+      const metaConfig = (org.meta_config ?? {}) as Record<string, string>
+      const accessToken = metaConfig.access_token || process.env.META_PAGE_ACCESS_TOKEN || ''
+
       // Fetch full lead data from Meta Graph API
       try {
         const graphRes = await fetch(
-          `https://graph.facebook.com/v19.0/${value.leadgen_id}?fields=field_data,created_time&access_token=${process.env.META_PAGE_ACCESS_TOKEN}`
+          `https://graph.facebook.com/v19.0/${value.leadgen_id}?fields=field_data,created_time&access_token=${accessToken}`
         )
         const leadData = await graphRes.json()
         console.log('[Meta Webhook] graph leadData:', JSON.stringify(leadData))
@@ -66,15 +99,6 @@ export async function POST(req: NextRequest) {
           .limit(1)
 
         if (existing && existing.length > 0) continue
-
-        // Get default org (in multi-tenant, match by page ID)
-        const { data: org } = await supabase
-          .from('orgs')
-          .select('id')
-          .eq('slug', 'admishine')
-          .single()
-
-        if (!org) continue
 
         // Allocation: find best available telesales/counsellor
         const owner = await allocateLead(supabase, org.id, new Date())

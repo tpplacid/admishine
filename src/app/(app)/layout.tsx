@@ -3,6 +3,7 @@ import { AppShell } from '@/components/layout/AppShell'
 import { OrgConfigProvider, OrgStage, OrgRole, OrgFeatures, DEFAULT_FEATURES } from '@/context/OrgConfigContext'
 import { DEFAULT_STAGES, DEFAULT_ROLES } from '@/context/orgDefaults'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getPalette, buildThemeCSS } from '@/lib/orgTheme'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const employee = await requireAuth()
@@ -43,7 +44,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // Fetch org logo + features
   const { data: orgData } = await supabase
     .from('orgs')
-    .select('logo_url, name, features')
+    .select('logo_url, name, features, brand_palette')
     .eq('id', employee.org_id)
     .single()
 
@@ -57,11 +58,18 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     meta:       raw.meta       ?? DEFAULT_FEATURES.meta,
   }
 
+  const palette = getPalette((orgData as unknown as Record<string, string> | null)?.brand_palette)
+  const themeCSS = buildThemeCSS(palette)
+
   return (
-    <OrgConfigProvider config={{ stages, roles, stageMap, roleMap, features }}>
-      <AppShell employee={employee} orgLogoUrl={orgData?.logo_url ?? null} orgName={orgData?.name ?? ''}>
-        {children}
-      </AppShell>
-    </OrgConfigProvider>
+    <>
+      {/* Inject per-org brand palette as CSS variable overrides */}
+      <style dangerouslySetInnerHTML={{ __html: themeCSS }} />
+      <OrgConfigProvider config={{ stages, roles, stageMap, roleMap, features }}>
+        <AppShell employee={employee} orgLogoUrl={orgData?.logo_url ?? null} orgName={orgData?.name ?? ''}>
+          {children}
+        </AppShell>
+      </OrgConfigProvider>
+    </>
   )
 }
