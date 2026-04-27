@@ -17,44 +17,23 @@ const FEATURE_DOTS: { key: string; label: string; color: string }[] = [
 
 export default async function SuperAdminOrgsPage() {
   await requireSuperAdmin()
+  const supabase = createAdminClient()
 
-  let orgs: { id: string; name: string; slug: string; created_at: string; features: Record<string, boolean> | null }[] | null = null
-  let counts: Record<string, number> = {}
-  let debugError: string | null = null
+  const { data: orgs } = await supabase
+    .from('orgs')
+    .select('id, name, slug, created_at, features')
+    .order('created_at', { ascending: false })
 
-  try {
-    const supabase = createAdminClient()
-
-    const { data, error: orgsError } = await supabase
-      .from('orgs')
-      .select('id, name, slug, created_at, features')
-      .order('created_at', { ascending: false })
-
-    if (orgsError) { debugError = `orgs query: ${orgsError.message}`; }
-    orgs = data
-
-    const orgIds = (orgs || []).map(o => o.id)
-    if (orgIds.length > 0) {
-      const { data: empData, error: empError } = await supabase
-        .from('employees')
-        .select('org_id')
-        .in('org_id', orgIds)
-      if (empError) debugError = (debugError ?? '') + ` | employees query: ${empError.message}`
-      for (const e of empData || []) {
-        counts[e.org_id] = (counts[e.org_id] || 0) + 1
-      }
+  const orgIds = (orgs || []).map(o => o.id)
+  const counts: Record<string, number> = {}
+  if (orgIds.length > 0) {
+    const { data: empData } = await supabase
+      .from('employees')
+      .select('org_id')
+      .in('org_id', orgIds)
+    for (const e of empData || []) {
+      counts[e.org_id] = (counts[e.org_id] || 0) + 1
     }
-  } catch (e: unknown) {
-    debugError = String(e)
-  }
-
-  if (debugError) {
-    return (
-      <div style={{ color: 'white', padding: 40, fontFamily: 'monospace' }}>
-        <h2 style={{ color: '#f87171', marginBottom: 12 }}>DB Error (temp debug)</h2>
-        <pre style={{ background: '#1e293b', padding: 16, borderRadius: 8, fontSize: 13, whiteSpace: 'pre-wrap' }}>{debugError}</pre>
-      </div>
-    )
   }
 
   return (
@@ -83,9 +62,9 @@ export default async function SuperAdminOrgsPage() {
         {/* Stats bar */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
           {[
-            { label: 'Total orgs',      value: orgs?.length ?? 0,                           color: 'text-white' },
+            { label: 'Total orgs',      value: orgs?.length ?? 0,                                color: 'text-white' },
             { label: 'Total employees', value: Object.values(counts).reduce((a, b) => a + b, 0), color: 'text-teal-400' },
-            { label: 'Active',          value: orgs?.length ?? 0,                           color: 'text-green-400' },
+            { label: 'Active',          value: orgs?.length ?? 0,                                color: 'text-green-400' },
           ].map(s => (
             <div key={s.label}
               className="rounded-xl px-4 py-3 border border-white/[0.06]"
@@ -112,70 +91,69 @@ export default async function SuperAdminOrgsPage() {
             {orgs.map(org => {
               const features = (org.features ?? {}) as Record<string, boolean>
               const empCount = counts[org.id] ?? 0
-              const enabledFeatures = FEATURE_DOTS.filter(f => features[f.key] !== false)
+              const enabledFeatures  = FEATURE_DOTS.filter(f => features[f.key] !== false)
               const disabledFeatures = FEATURE_DOTS.filter(f => features[f.key] === false)
+              const initial = org.name?.charAt(0)?.toUpperCase() ?? '?'
+              const timeAgo = org.created_at
+                ? formatDistanceToNow(new Date(org.created_at), { addSuffix: true })
+                : ''
 
               return (
-                <Link
-                  key={org.id}
-                  href={`/superadmin/orgs/${org.id}`}
-                  className="flex items-center gap-4 px-5 py-4 rounded-2xl border border-white/[0.07] bg-white/[0.03] hover:bg-teal-500/[0.06] hover:border-teal-500/30 transition-all group"
-                >
-                  {/* Avatar */}
-                  <div
-                    className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-base"
-                    style={{ background: 'linear-gradient(135deg, rgba(20,184,166,0.25) 0%, rgba(13,148,136,0.15) 100%)', color: '#2dd4bf', border: '1px solid rgba(20,184,166,0.2)' }}
-                  >
-                    {org.name.charAt(0).toUpperCase()}
-                  </div>
+                /* Wrapper div — avoids nesting <a> inside <a> (Link renders as <a>) */
+                <div key={org.id}
+                  className="flex items-center gap-3 px-5 py-4 rounded-2xl border border-white/[0.07] bg-white/[0.03] hover:bg-teal-500/[0.06] hover:border-teal-500/30 transition-all group">
 
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <p className="text-white font-semibold text-sm truncate">{org.name}</p>
-                      <a
-                        href={`/${org.slug}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={e => e.stopPropagation()}
-                        className="text-slate-600 hover:text-teal-400 transition-colors flex-shrink-0"
-                      >
-                        <ExternalLink size={11} />
-                      </a>
+                  {/* Clickable main area → org detail */}
+                  <Link href={`/superadmin/orgs/${org.id}`} className="flex items-center gap-4 flex-1 min-w-0">
+                    {/* Avatar */}
+                    <div
+                      className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-base"
+                      style={{ background: 'linear-gradient(135deg, rgba(20,184,166,0.25) 0%, rgba(13,148,136,0.15) 100%)', color: '#2dd4bf', border: '1px solid rgba(20,184,166,0.2)' }}
+                    >
+                      {initial}
                     </div>
-                    <p className="text-slate-500 text-xs truncate">/{org.slug}</p>
-                  </div>
 
-                  {/* Feature dots */}
-                  <div className="hidden sm:flex items-center gap-1.5 flex-shrink-0">
-                    {enabledFeatures.map(f => (
-                      <div key={f.key} title={f.label}
-                        className="w-2 h-2 rounded-full"
-                        style={{ backgroundColor: f.color }}
-                      />
-                    ))}
-                    {disabledFeatures.map(f => (
-                      <div key={f.key} title={`${f.label} (disabled)`}
-                        className="w-2 h-2 rounded-full opacity-20"
-                        style={{ backgroundColor: f.color }}
-                      />
-                    ))}
-                  </div>
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white font-semibold text-sm truncate mb-0.5">{org.name}</p>
+                      <p className="text-slate-500 text-xs truncate">/{org.slug}</p>
+                    </div>
 
-                  {/* Employee count */}
-                  <div className="hidden md:flex items-center gap-1.5 flex-shrink-0 min-w-[64px]">
-                    <Users size={12} className="text-slate-500" />
-                    <span className="text-sm font-semibold text-slate-300">{empCount}</span>
-                    <span className="text-xs text-slate-600">emp</span>
-                  </div>
+                    {/* Feature dots */}
+                    <div className="hidden sm:flex items-center gap-1.5 flex-shrink-0">
+                      {enabledFeatures.map(f => (
+                        <div key={f.key} title={f.label}
+                          className="w-2 h-2 rounded-full"
+                          style={{ backgroundColor: f.color }} />
+                      ))}
+                      {disabledFeatures.map(f => (
+                        <div key={f.key} title={`${f.label} (disabled)`}
+                          className="w-2 h-2 rounded-full opacity-20"
+                          style={{ backgroundColor: f.color }} />
+                      ))}
+                    </div>
 
-                  {/* Time */}
-                  <div className="hidden lg:block text-xs text-slate-600 flex-shrink-0 min-w-[100px] text-right">
-                    {formatDistanceToNow(new Date(org.created_at), { addSuffix: true })}
-                  </div>
+                    {/* Employee count */}
+                    <div className="hidden md:flex items-center gap-1.5 flex-shrink-0 min-w-[64px]">
+                      <Users size={12} className="text-slate-500" />
+                      <span className="text-sm font-semibold text-slate-300">{empCount}</span>
+                      <span className="text-xs text-slate-600">emp</span>
+                    </div>
+
+                    {/* Time */}
+                    <div className="hidden lg:block text-xs text-slate-600 flex-shrink-0 min-w-[100px] text-right">
+                      {timeAgo}
+                    </div>
+                  </Link>
+
+                  {/* External link — separate from inner Link, no nesting */}
+                  <a href={`/${org.slug}`} target="_blank" rel="noopener noreferrer"
+                    className="text-slate-600 hover:text-teal-400 transition-colors flex-shrink-0 p-1">
+                    <ExternalLink size={13} />
+                  </a>
 
                   <ChevronRight size={14} className="text-slate-700 group-hover:text-slate-400 transition-colors flex-shrink-0" />
-                </Link>
+                </div>
               )
             })}
           </div>
