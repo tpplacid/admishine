@@ -17,23 +17,44 @@ const FEATURE_DOTS: { key: string; label: string; color: string }[] = [
 
 export default async function SuperAdminOrgsPage() {
   await requireSuperAdmin()
-  const supabase = createAdminClient()
 
-  const { data: orgs } = await supabase
-    .from('orgs')
-    .select('id, name, slug, created_at, features')
-    .order('created_at', { ascending: false })
+  let orgs: { id: string; name: string; slug: string; created_at: string; features: Record<string, boolean> | null }[] | null = null
+  let counts: Record<string, number> = {}
+  let debugError: string | null = null
 
-  const orgIds = (orgs || []).map(o => o.id)
-  const counts: Record<string, number> = {}
-  if (orgIds.length > 0) {
-    const { data: empData } = await supabase
-      .from('employees')
-      .select('org_id')
-      .in('org_id', orgIds)
-    for (const e of empData || []) {
-      counts[e.org_id] = (counts[e.org_id] || 0) + 1
+  try {
+    const supabase = createAdminClient()
+
+    const { data, error: orgsError } = await supabase
+      .from('orgs')
+      .select('id, name, slug, created_at, features')
+      .order('created_at', { ascending: false })
+
+    if (orgsError) { debugError = `orgs query: ${orgsError.message}`; }
+    orgs = data
+
+    const orgIds = (orgs || []).map(o => o.id)
+    if (orgIds.length > 0) {
+      const { data: empData, error: empError } = await supabase
+        .from('employees')
+        .select('org_id')
+        .in('org_id', orgIds)
+      if (empError) debugError = (debugError ?? '') + ` | employees query: ${empError.message}`
+      for (const e of empData || []) {
+        counts[e.org_id] = (counts[e.org_id] || 0) + 1
+      }
     }
+  } catch (e: unknown) {
+    debugError = String(e)
+  }
+
+  if (debugError) {
+    return (
+      <div style={{ color: 'white', padding: 40, fontFamily: 'monospace' }}>
+        <h2 style={{ color: '#f87171', marginBottom: 12 }}>DB Error (temp debug)</h2>
+        <pre style={{ background: '#1e293b', padding: 16, borderRadius: 8, fontSize: 13, whiteSpace: 'pre-wrap' }}>{debugError}</pre>
+      </div>
+    )
   }
 
   return (
