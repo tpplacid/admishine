@@ -80,10 +80,10 @@ export async function POST(req: NextRequest) {
   const res = NextResponse.json({ ok: true })
   res.cookies.set(COOKIE_NAME, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    secure: true,
+    sameSite: 'lax',
     maxAge: 60 * 60 * 24 * 7, // 7 days
-    path: '/superadmin',       // scope cookie to superadmin paths only
+    path: '/',
   })
   return res
 }
